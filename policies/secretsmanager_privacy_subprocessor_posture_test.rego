@@ -74,6 +74,11 @@ test_role_and_action_checks if {
 	policy.violation[{"id": "excess_actions"}] with input as base_secret with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]}
 }
 
+test_deny_principals_do_not_emit_scope_violations if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "*"}, {"op": "replace", "path": "/config/resource_policy/principals/0/effect", "value": "Deny"}])
+	count(policy.violation) == 0 with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]}
+}
+
 test_no_policy_passes_policy_checks if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy_present", "value": false}])
 	count(policy.violation) == 0 with input as inp

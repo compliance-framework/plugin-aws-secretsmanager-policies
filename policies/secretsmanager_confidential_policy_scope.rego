@@ -93,6 +93,16 @@ principal_arn(principal_entry) := arn if {
 	arn := aws
 }
 
+allow_effect(principal_entry) if {
+	lower(object.get(principal_entry, "effect", "")) == "allow"
+}
+
+principal_account_id(principal_entry) := principal_account if {
+	arn := principal_arn(principal_entry)
+	regex.match("^[0-9]{12}$", arn)
+	principal_account := arn
+}
+
 principal_account_id(principal_entry) := principal_account if {
 	arn := principal_arn(principal_entry)
 	parts := split(arn, ":")
@@ -111,6 +121,7 @@ violation[{"id": "wildcard_principal"}] if {
 	is_confidential
 	resource_policy_present
 	principal := principals[_]
+	allow_effect(principal)
 	principal_is_wildcard(principal)
 }
 
@@ -119,6 +130,7 @@ violation[{"id": "cross_account_principal"}] if {
 	is_confidential
 	resource_policy_present
 	principal := principals[_]
+	allow_effect(principal)
 	principal_account := principal_account_id(principal)
 	principal_account != account_id
 }
@@ -129,6 +141,7 @@ violation[{"id": "principal_outside_cleared_role_set"}] if {
 	resource_policy_present
 	count(data.cleared_principal_arns) > 0
 	principal := principals[_]
+	allow_effect(principal)
 	arn := principal_arn(principal)
 	not cleared_principal_arns[arn]
 }

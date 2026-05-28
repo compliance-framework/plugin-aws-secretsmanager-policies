@@ -56,6 +56,11 @@ test_missing_fails if {
 	policy.violation[{"id": "admin_principal_missing"}] with input as inp
 }
 
+test_deny_admin_action_does_not_satisfy_admin_principal if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": ["secretsmanager:DeleteSecret"]}, {"op": "replace", "path": "/config/resource_policy/principals/0/effect", "value": "Deny"}])
+	policy.violation[{"id": "admin_principal_missing"}] with input as inp
+}
+
 test_no_policy_passes if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy_present", "value": false}])
 	count(policy.violation) == 0 with input as inp

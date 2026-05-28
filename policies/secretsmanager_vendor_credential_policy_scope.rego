@@ -93,6 +93,16 @@ principal_arn(principal_entry) := arn if {
 	arn := aws
 }
 
+allow_effect(principal_entry) if {
+	lower(object.get(principal_entry, "effect", "")) == "allow"
+}
+
+principal_account_id(principal_entry) := principal_account if {
+	arn := principal_arn(principal_entry)
+	regex.match("^[0-9]{12}$", arn)
+	principal_account := arn
+}
+
 principal_account_id(principal_entry) := principal_account if {
 	arn := principal_arn(principal_entry)
 	parts := split(arn, ":")
@@ -112,6 +122,7 @@ violation[{"id": "vendor_principal_wildcard"}] if {
 	is_vendor_secret
 	resource_policy_present
 	principal := principals[_]
+	allow_effect(principal)
 	principal_is_wildcard(principal)
 }
 
@@ -120,6 +131,7 @@ violation[{"id": "vendor_principal_excess_actions"}] if {
 	is_vendor_secret
 	resource_policy_present
 	principal := principals[_]
+	allow_effect(principal)
 	actions := object.get(principal, "action", [])
 	action := actions[_]
 	not allowed_vendor_actions_normalized[upper(action)]
@@ -130,6 +142,7 @@ violation[{"id": "vendor_principal_cross_account_undocumented"}] if {
 	is_vendor_secret
 	resource_policy_present
 	principal := principals[_]
+	allow_effect(principal)
 	principal_account := principal_account_id(principal)
 	principal_account != account_id
 	not allowed_vendor_partner_accounts[principal_account]

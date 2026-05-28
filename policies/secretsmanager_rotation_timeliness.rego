@@ -53,7 +53,11 @@ days_since_rotation := days if {
 	days := ((((now_ns - last_rotated_ns) / 1000000000) / 60) / 60) / 24
 }
 
-rotation_deadline_days := automatically_after_days * data.rotation_grace_multiplier
+rotation_deadline_days := automatically_after_days * data.rotation_grace_multiplier if {
+	automatically_after_days != null
+	automatically_after_days > 0
+}
+
 title := sprintf("Validate rotation timeliness for %s", [secret_arn])
 description := sprintf("Secret %s last_rotated_date=%q and automatically_after_days=%v.", [secret_arn, last_rotated_date, automatically_after_days])
 
@@ -68,5 +72,6 @@ violation[{"id": "rotation_overdue"}] if {
 	rotation_enabled
 	last_rotated_date != ""
 	automatically_after_days != null
+	automatically_after_days > 0
 	days_since_rotation > rotation_deadline_days
 }

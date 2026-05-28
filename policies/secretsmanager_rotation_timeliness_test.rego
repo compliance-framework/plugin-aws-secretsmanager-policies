@@ -58,6 +58,11 @@ test_never_fails if {
 
 test_overdue_fails if policy.violation[{"id": "rotation_overdue"}] with input as base_secret with time.now_ns as 1782864000000000000
 
+test_schedule_expression_without_automatic_days_not_overdue if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/rotation_rules", "value": {"automatically_after_days": 0, "schedule_expression": "rate(30 days)"}}])
+	not policy.violation[{"id": "rotation_overdue"}] with input as inp with time.now_ns as 1778889600000000000
+}
+
 test_disabled_skipped if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/rotation_enabled", "value": false}])
 	count(policy.violation) == 0 with input as inp with time.now_ns as 1782864000000000000

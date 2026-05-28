@@ -68,6 +68,7 @@ skip_reason := sprintf("Secret %s is not confidentiality-classified; this policy
 
 deleted_date := object.get(config, "deleted_date", "")
 recovery_window_days := object.get(config, "recovery_window_days", null)
+force_delete_without_recovery := object.get(config, "force_delete_without_recovery", false)
 title := sprintf("Validate confidential disposal window for %s", [secret_arn])
 description := sprintf("Secret %s deleted_date=%q recovery_window_days=%v.", [secret_arn, deleted_date, recovery_window_days])
 
@@ -76,6 +77,7 @@ violation[{"id": "recovery_window_below_confidential_minimum"}] if {
 	is_confidential
 	deleted_date != ""
 	recovery_window_days != null
+	recovery_window_days > 0
 	recovery_window_days < data.min_confidential_recovery_window_days
 }
 
@@ -83,5 +85,5 @@ violation[{"id": "force_delete_used"}] if {
 	resource_type == "secret"
 	is_confidential
 	deleted_date != ""
-	recovery_window_days == 0
+	force_delete_without_recovery == true
 }

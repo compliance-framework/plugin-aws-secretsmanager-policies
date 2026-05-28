@@ -37,6 +37,7 @@ skip_reason := sprintf("Resource type %q is not a secret; this policy only appli
 
 deleted_date := object.get(config, "deleted_date", "")
 recovery_window_days := object.get(config, "recovery_window_days", null)
+force_delete_without_recovery := object.get(config, "force_delete_without_recovery", false)
 allowed_force_delete_arns := {arn | arn := data.allowed_force_delete_secret_arns[_]}
 force_delete_allowed if allowed_force_delete_arns[secret_arn]
 title := sprintf("Validate scheduled deletion window for %s", [secret_arn])
@@ -46,12 +47,13 @@ violation[{"id": "recovery_window_below_minimum"}] if {
 	resource_type == "secret"
 	deleted_date != ""
 	recovery_window_days != null
+	recovery_window_days > 0
 	recovery_window_days < data.min_recovery_window_days
 }
 
 violation[{"id": "force_delete_used"}] if {
 	resource_type == "secret"
 	deleted_date != ""
-	recovery_window_days == 0
+	force_delete_without_recovery == true
 	not force_delete_allowed
 }

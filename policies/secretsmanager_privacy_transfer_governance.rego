@@ -93,6 +93,16 @@ principal_arn(principal_entry) := arn if {
 	arn := aws
 }
 
+allow_effect(principal_entry) if {
+	lower(object.get(principal_entry, "effect", "")) == "allow"
+}
+
+principal_account_id(principal_entry) := principal_account if {
+	arn := principal_arn(principal_entry)
+	regex.match("^[0-9]{12}$", arn)
+	principal_account := arn
+}
+
 principal_account_id(principal_entry) := principal_account if {
 	arn := principal_arn(principal_entry)
 	parts := split(arn, ":")
@@ -107,6 +117,7 @@ documented_data_subject_flows := {flow | flow := data.documented_data_subject_fl
 allowed_pi_transfer_regions := {region | region := data.allowed_pi_transfer_regions[_]}
 
 principal_region(principal_entry) := region if {
+	allow_effect(principal_entry)
 	principal_account := principal_account_id(principal_entry)
 	region := object.get(data.account_id_to_region, principal_account, "")
 	region != ""

@@ -61,6 +61,19 @@ test_cross_account if {
 	policy.violation[{"id": "cross_account_principal"}] with input as inp
 }
 
+test_bare_account_principals if {
+	same := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "123456789012"}])
+	count(policy.violation) == 0 with input as same
+	cross := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "999999999999"}])
+	policy.violation[{"id": "cross_account_principal"}] with input as cross
+	policy.violation[{"id": "cross_account_principal"}] with input as cross with data.allowed_cross_account_principals as ["999999999999"]
+}
+
+test_deny_principals_do_not_emit_scope_violations if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "*"}, {"op": "replace", "path": "/config/resource_policy/principals/0/effect", "value": "Deny"}])
+	count(policy.violation) == 0 with input as inp
+}
+
 test_cleared_list if {
 	policy.violation[{"id": "principal_outside_cleared_role_set"}] with input as base_secret with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/other"]
 	count(policy.violation) == 0 with input as base_secret with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"]

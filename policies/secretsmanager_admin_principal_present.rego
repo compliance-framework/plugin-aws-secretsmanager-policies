@@ -76,11 +76,16 @@ principal_account_id(principal_entry) := principal_account if {
 	regex.match("^[0-9]{12}$", principal_account)
 }
 
+allow_effect(principal_entry) if {
+	lower(object.get(principal_entry, "effect", "")) == "allow"
+}
+
 resource_policy_present := object.get(config, "resource_policy_present", false)
 admin_actions_normalized := {upper(a) | a := data.admin_action_set[_]}
 
 admin_principal_present if {
 	principal := principals[_]
+	allow_effect(principal)
 	actions := object.get(principal, "action", [])
 	action := actions[_]
 	admin_actions_normalized[upper(action)]
