@@ -57,7 +57,7 @@ test_missing_fails if {
 }
 
 test_case_insensitive_key_passes if {
-	inp := json.patch(base_secret, [{"op": "replace", "path": "/tags", "value": {"team": "platform"}}])
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/tags", "value": {"oWnEr": "platform"}}])
 	count(policy.violation) == 0 with input as inp
 }
 

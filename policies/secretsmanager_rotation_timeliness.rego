@@ -96,6 +96,16 @@ skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%
 	not schedule_rate_days_positive
 }
 
+skip_reason := sprintf("Secret %s is missing rotation cadence; collector must provide automatically_after_days or a supported schedule_expression.", [secret_arn]) if {
+	resource_type == "secret"
+	rotation_enabled
+	not is_service_linked
+	last_rotated_date != ""
+	schedule_expression == ""
+	not automatically_after_days_positive
+	not schedule_rate_days_positive
+}
+
 title := sprintf("Validate rotation timeliness for %s", [secret_arn])
 description := sprintf("Secret %s last_rotated_date=%q and automatically_after_days=%v.", [secret_arn, last_rotated_date, automatically_after_days])
 

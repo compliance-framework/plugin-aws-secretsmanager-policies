@@ -65,6 +65,18 @@ skip_reason := sprintf("Secret %s is not privacy-scoped; this policy applies onl
 	not is_pi_secret
 }
 
+skip_reason := sprintf("Secret %s is not a vendor integration; this policy only applies to PI subprocessors.", [secret_arn]) if {
+	resource_type == "secret"
+	is_pi_secret
+	not is_vendor_secret
+}
+
+in_scope if {
+	resource_type == "secret"
+	is_pi_secret
+	is_vendor_secret
+}
+
 principals := object.get(object.get(config, "resource_policy", {}), "principals", [])
 account_id := object.get(account, "account_id", "")
 
@@ -142,27 +154,23 @@ title := sprintf("Validate PI subprocessor posture for %s", [secret_arn])
 description := sprintf("Secret %s VendorId=%q resource_policy_present=%v.", [secret_arn, vendor_id, resource_policy_present])
 
 violation[{"id": "vendor_id_tag_missing"}] if {
-	resource_type == "secret"
-	is_pi_secret
+	in_scope
 	vendor_id == ""
 }
 
 violation[{"id": "aws_managed_default_kms_key"}] if {
-	resource_type == "secret"
-	is_pi_secret
+	in_scope
 	kms_key_id == "aws/secretsmanager"
 }
 
 violation[{"id": "rotation_disabled"}] if {
-	resource_type == "secret"
-	is_pi_secret
+	in_scope
 	not is_service_linked
 	not rotation_enabled
 }
 
 violation[{"id": "rotation_overdue"}] if {
-	resource_type == "secret"
-	is_pi_secret
+	in_scope
 	not is_service_linked
 	rotation_enabled
 	last_rotated_date != ""
@@ -170,8 +178,7 @@ violation[{"id": "rotation_overdue"}] if {
 }
 
 violation[{"id": "principal_wildcard"}] if {
-	resource_type == "secret"
-	is_pi_secret
+	in_scope
 	resource_policy_present
 	principal := principals[_]
 	allow_effect(principal)
@@ -179,16 +186,14 @@ violation[{"id": "principal_wildcard"}] if {
 }
 
 violation[{"id": "vendor_integration_role_not_documented"}] if {
-	resource_type == "secret"
-	is_pi_secret
+	in_scope
 	resource_policy_present
 	vendor_id != ""
 	not vendor_documented
 }
 
 violation[{"id": "principal_outside_integration_role_set"}] if {
-	resource_type == "secret"
-	is_pi_secret
+	in_scope
 	resource_policy_present
 	vendor_documented
 	principal := principals[_]
@@ -198,8 +203,7 @@ violation[{"id": "principal_outside_integration_role_set"}] if {
 }
 
 violation[{"id": "excess_actions"}] if {
-	resource_type == "secret"
-	is_pi_secret
+	in_scope
 	resource_policy_present
 	principal := principals[_]
 	allow_effect(principal)

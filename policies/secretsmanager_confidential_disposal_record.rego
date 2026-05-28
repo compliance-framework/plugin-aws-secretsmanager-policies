@@ -69,7 +69,47 @@ skip_reason := sprintf("Secret %s is not confidentiality-classified; this policy
 dynamic := object.get(input, "dynamic", {})
 cloudtrail_events := object.get(dynamic, "cloudtrail_events", [])
 deleted_date := object.get(config, "deleted_date", "")
-delete_secret_events := [event | event := cloudtrail_events[_]; object.get(event, "event_name", "") == "DeleteSecret"]
+
+event_secret_id(event) := id if {
+	id := object.get(event, "secret_arn", "")
+	id != ""
+}
+
+event_secret_id(event) := id if {
+	params := object.get(event, "request_parameters", {})
+	id := object.get(params, "secret_arn", "")
+	id != ""
+}
+
+event_secret_id(event) := id if {
+	params := object.get(event, "request_parameters", {})
+	id := object.get(params, "secret_id", "")
+	id != ""
+}
+
+event_secret_id(event) := id if {
+	params := object.get(event, "requestParameters", {})
+	id := object.get(params, "secretArn", "")
+	id != ""
+}
+
+event_secret_id(event) := id if {
+	params := object.get(event, "requestParameters", {})
+	id := object.get(params, "secretId", "")
+	id != ""
+}
+
+event_secret_id(event) := id if {
+	resource := object.get(event, "resources", [])[_]
+	id := object.get(resource, "ARN", object.get(resource, "arn", ""))
+	id != ""
+}
+
+event_matches_secret(event) if {
+	event_secret_id(event) == secret_arn
+}
+
+delete_secret_events := [event | event := cloudtrail_events[_]; object.get(event, "event_name", "") == "DeleteSecret"; event_matches_secret(event)]
 disposal_authorisation := object.get(tags, "DisposalAuthorisation", "")
 title := sprintf("Validate confidential disposal record for %s", [secret_arn])
 description := sprintf("Secret %s has %v DeleteSecret events.", [secret_arn, count(delete_secret_events)])

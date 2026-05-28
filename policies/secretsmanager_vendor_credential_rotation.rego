@@ -101,6 +101,7 @@ violation[{"id": "vendor_rotation_stale"}] if {
 	is_vendor_secret
 	not is_service_linked
 	not allowed_unrotated_vendor
+	rotation_enabled
 	last_rotated_date != ""
 	days_since_rotation > data.vendor_rotation_max_days
 }

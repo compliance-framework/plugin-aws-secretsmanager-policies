@@ -56,9 +56,20 @@ test_wildcard if {
 	policy.violation[{"id": "wildcard_principal"}] with input as inp
 }
 
+test_wildcard_in_aws_principal_array if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": {"AWS": ["*"]}}])
+	policy.violation[{"id": "wildcard_principal"}] with input as inp
+}
+
 test_cross_account if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "arn:aws:iam::999999999999:role/x"}])
 	policy.violation[{"id": "cross_account_principal"}] with input as inp
+}
+
+test_cross_account_in_aws_principal_array if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": {"AWS": ["arn:aws:iam::999999999999:role/x"]}}])
+	policy.violation[{"id": "cross_account_principal"}] with input as inp
+	policy.violation[{"id": "principal_outside_cleared_role_set"}] with input as inp with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"]
 }
 
 test_bare_account_principals if {

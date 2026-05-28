@@ -52,6 +52,11 @@ base_secret := {
 test_pass if count(policy.violation) == 0 with input as base_secret with time.now_ns as 1780272000000000000
 test_stale if policy.violation[{"id": "vendor_rotation_stale"}] with input as base_secret with time.now_ns as 1811808000000000000
 
+test_disabled_rotation_not_stale if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/rotation_enabled", "value": false}])
+	not policy.violation[{"id": "vendor_rotation_stale"}] with input as inp with time.now_ns as 1811808000000000000
+}
+
 test_never if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/last_rotated_date", "value": ""}])
 	policy.violation[{"id": "vendor_rotation_never_executed"}] with input as inp

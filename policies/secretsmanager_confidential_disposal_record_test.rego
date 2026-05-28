@@ -57,13 +57,23 @@ test_unrecorded if {
 }
 
 test_missing_authorisation if {
-	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": [{"event_name": "DeleteSecret", "event_time": "2026-05-20T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin"}]}, {"op": "replace", "path": "/tags/DisposalAuthorisation", "value": ""}])
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": [{"event_name": "DeleteSecret", "event_time": "2026-05-20T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin", "secret_arn": base_secret.config.secret_arn}]}, {"op": "replace", "path": "/tags/DisposalAuthorisation", "value": ""}])
 	policy.violation[{"id": "disposal_authorisation_tag_missing"}] with input as inp
 }
 
 test_unattributable if {
-	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": [{"event_name": "DeleteSecret", "event_time": "2026-05-20T00:00:00Z", "user_identity_arn": ""}]}])
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": [{"event_name": "DeleteSecret", "event_time": "2026-05-20T00:00:00Z", "user_identity_arn": "", "requestParameters": {"secretId": base_secret.config.secret_arn}}]}])
 	policy.violation[{"id": "disposal_event_unattributable"}] with input as inp
+}
+
+test_delete_secret_events_scoped_to_secret if {
+	events := [
+		{"event_name": "DeleteSecret", "event_time": "2026-05-20T00:00:00Z", "user_identity_arn": "", "secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:other"},
+		{"event_name": "DeleteSecret", "event_time": "2026-05-21T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin", "resources": [{"ARN": base_secret.config.secret_arn}]},
+	]
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": events}, {"op": "replace", "path": "/tags/DisposalAuthorisation", "value": ""}])
+	policy.violation[{"id": "disposal_authorisation_tag_missing"}] with input as inp
+	not policy.violation[{"id": "disposal_event_unattributable"}] with input as inp
 }
 
 test_disabled_requirement if {

@@ -3,10 +3,9 @@ on:
     tags:
       - '*'
 
-permissions:
-  contents: write
-  packages: write
-
 jobs:
   build-and-upload:
+    permissions:
+      contents: write
+      packages: write
     uses: ./.github/workflows/build-and-upload.yml

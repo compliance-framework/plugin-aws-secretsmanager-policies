@@ -11,13 +11,13 @@ package compliance_framework.secretsmanager_admin_principal_present
 #     - ctrl-cc6-2-023
 
 risk_templates := [{
-	"name": "Secrets Manager resource policy grants excessive access",
-	"title": "Broad Resource Policies Can Expose Secret Values or Administration",
-	"statement": "Wildcard, undocumented, or over-privileged principals in a secret resource policy can grant access outside the intended trust boundary.",
+	"name": "Secrets Manager resource policy lacks an administrative principal",
+	"title": "Missing Administrative Principal Weakens Secret Governance",
+	"statement": "Without an approved administrative principal with lifecycle rights, secret administration and incident-response operations can be blocked or unmanaged.",
 	"likelihood_hint": "medium",
 	"impact_hint": "high",
-	"threat_refs": [{"system": "https://cwe.mitre.org", "external_id": "CWE-732", "title": "Incorrect Permission Assignment for Critical Resource", "url": "https://cwe.mitre.org/data/definitions/732.html"}],
-	"remediation": {"title": "Constrain the resource policy", "description": "Replace wildcard principals, reduce actions, and document required partner access.", "tasks": [{"title": "Remove wildcard principals"}, {"title": "Record approved principals"}]},
+	"threat_refs": [{"system": "https://cwe.mitre.org", "external_id": "CWE-284", "title": "Improper Access Control", "url": "https://cwe.mitre.org/data/definitions/284.html"}],
+	"remediation": {"title": "Declare an approved administrative principal", "description": "Add or document at least one approved principal with the required administrative action set.", "tasks": [{"title": "Add an administrative principal"}, {"title": "Document required administrative access"}]},
 }]
 
 config := object.get(input, "config", {})

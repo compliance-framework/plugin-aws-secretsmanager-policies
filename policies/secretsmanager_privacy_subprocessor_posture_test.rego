@@ -59,6 +59,12 @@ test_vendor_id_missing if {
 	policy.violation[{"id": "vendor_id_tag_missing"}] with input as inp
 }
 
+test_internal_pi_secret_skipped if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/tags/IntegrationType", "value": "internal"}, {"op": "replace", "path": "/tags/VendorId", "value": ""}, {"op": "replace", "path": "/config/kms_key_id", "value": "aws/secretsmanager"}, {"op": "replace", "path": "/config/rotation_enabled", "value": false}, {"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "*"}])
+	count(policy.violation) == 0 with input as inp
+	policy.skip_reason with input as inp
+}
+
 test_kms_rotation_wildcard if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/kms_key_id", "value": "aws/secretsmanager"}, {"op": "replace", "path": "/config/rotation_enabled", "value": false}, {"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "*"}])
 	policy.violation[{"id": "aws_managed_default_kms_key"}] with input as inp

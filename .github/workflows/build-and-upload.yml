@@ -1,9 +1,7 @@
 on:
   workflow_call:
 
-permissions:
-  contents: write
-  packages: write
+permissions: {}
 
 jobs:
   build-and-upload:
@@ -38,7 +36,11 @@ jobs:
         env:
           GH_REPOSITORY: ${{ github.repository }}
           GH_REF_NAME: ${{ github.ref_name }}
-        run: gooci upload-single dist/bundle.tar.gz "ghcr.io/$GH_REPOSITORY:$GH_REF_NAME"
+        run: |
+          TAG="$(printf '%s' "$GH_REF_NAME" | tr '/:@ ' '----' | tr -c 'A-Za-z0-9_.-' '-')"
+          TAG="${TAG#[-.]}"
+          TAG="${TAG:0:128}"
+          gooci upload-single dist/bundle.tar.gz "ghcr.io/$GH_REPOSITORY:$TAG"
       - name: upload latest bundle
         if: ${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-') }}
         env:

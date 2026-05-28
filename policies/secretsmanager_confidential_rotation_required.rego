@@ -74,6 +74,43 @@ skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); rotatio
 rotation_enabled := object.get(config, "rotation_enabled", false)
 rotation_rules := object.get(config, "rotation_rules", {})
 automatically_after_days := object.get(rotation_rules, "automatically_after_days", null)
+schedule_expression := lower(trim_space(object.get(rotation_rules, "schedule_expression", "")))
+
+automatically_after_days_positive if {
+	automatically_after_days != null
+	automatically_after_days > 0
+}
+
+schedule_rate_days := days if {
+	matches := regex.find_all_string_submatch_n("^rate\\(([0-9]+) days?\\)$", schedule_expression, 1)
+	count(matches) == 1
+	days := to_number(matches[0][1])
+	days > 0
+}
+
+schedule_rate_days_positive if {
+	schedule_rate_days > 0
+}
+
+effective_rotation_days := automatically_after_days if {
+	automatically_after_days_positive
+}
+
+effective_rotation_days := schedule_rate_days if {
+	not automatically_after_days_positive
+	schedule_rate_days_positive
+}
+
+skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%q; collector must provide a normalized day cadence.", [secret_arn, schedule_expression]) if {
+	resource_type == "secret"
+	is_confidential
+	not is_service_linked
+	rotation_enabled
+	schedule_expression != ""
+	not automatically_after_days_positive
+	not schedule_rate_days_positive
+}
+
 title := sprintf("Validate confidential rotation requirements for %s", [secret_arn])
 description := sprintf("Secret %s rotation_enabled=%v automatically_after_days=%v.", [secret_arn, rotation_enabled, automatically_after_days])
 
@@ -89,6 +126,5 @@ violation[{"id": "rotation_cadence_too_long"}] if {
 	is_confidential
 	not is_service_linked
 	rotation_enabled
-	automatically_after_days != null
-	automatically_after_days > data.max_confidential_rotation_days
+	effective_rotation_days > data.max_confidential_rotation_days
 }

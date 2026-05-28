@@ -37,6 +37,7 @@ base_secret := {
 		"event_name": "RotateSecret",
 		"event_time": "2026-05-01T00:00:00Z",
 		"user_identity_arn": "arn:aws:iam::123456789012:role/admin",
+		"secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:s-1",
 	}]},
 	"tags": {
 		"Owner": "platform",
@@ -71,6 +72,16 @@ test_missing_timestamp_fails if {
 }
 
 test_stale_fails if policy.violation[{"id": "admin_event_stale"}] with input as base_secret with data.require_admin_audit_events as true with time.now_ns as 1790812800000000000
+
+test_admin_events_scoped_to_secret if {
+	events := [
+		{"event_name": "RotateSecret", "event_time": "2026-05-01T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin", "secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:other"},
+		{"event_name": "RotateSecret", "event_time": "2026-05-02T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin", "requestParameters": {"secretId": base_secret.config.secret_arn}},
+	]
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": events}])
+	not policy.violation[{"id": "admin_events_missing"}] with input as inp with data.require_admin_audit_events as true
+	not policy.violation[{"id": "admin_event_unattributable"}] with input as inp with data.require_admin_audit_events as true
+}
 
 test_non_secret_record_skipped if {
 	count(policy.violation) == 0 with input as {"resource": {"type": "loadbalancer"}}

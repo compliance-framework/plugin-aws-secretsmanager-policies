@@ -61,6 +61,22 @@ test_cadence_too_long if {
 	policy.violation[{"id": "rotation_cadence_too_long"}] with input as inp
 }
 
+test_schedule_expression_cadence_too_long if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/rotation_rules", "value": {"schedule_expression": "rate(120 days)"}}])
+	policy.violation[{"id": "rotation_cadence_too_long"}] with input as inp
+}
+
+test_schedule_expression_cadence_within_limit_passes if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/rotation_rules", "value": {"schedule_expression": "rate(30 days)"}}])
+	not policy.violation[{"id": "rotation_cadence_too_long"}] with input as inp
+}
+
+test_unsupported_schedule_expression_skipped if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/rotation_rules", "value": {"schedule_expression": "cron(0 0 1 * ? *)"}}])
+	not policy.violation[{"id": "rotation_cadence_too_long"}] with input as inp
+	policy.skip_reason with input as inp
+}
+
 test_service_linked_long_cadence_skipped if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/owning_service", "value": "rds.amazonaws.com"}, {"op": "replace", "path": "/config/rotation_rules/automatically_after_days", "value": 120}])
 	not policy.violation[{"id": "rotation_cadence_too_long"}] with input as inp

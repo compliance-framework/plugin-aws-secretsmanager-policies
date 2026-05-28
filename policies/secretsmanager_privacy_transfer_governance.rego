@@ -68,46 +68,44 @@ skip_reason := sprintf("Secret %s is not privacy-scoped; this policy applies onl
 principals := object.get(object.get(config, "resource_policy", {}), "principals", [])
 account_id := object.get(account, "account_id", "")
 
-principal_is_wildcard(principal_entry) if {
-	principal := object.get(principal_entry, "principal", "")
-	principal == "*"
+principal_values(principal_entry) := values if {
+	values := {v |
+		principal := object.get(principal_entry, "principal", "")
+		is_string(principal)
+		v := principal
+	} | {v |
+		principal := object.get(principal_entry, "principal", {})
+		is_object(principal)
+		aws := object.get(principal, "AWS", "")
+		is_string(aws)
+		v := aws
+	} | {v |
+		principal := object.get(principal_entry, "principal", {})
+		is_object(principal)
+		aws := object.get(principal, "AWS", [])
+		is_array(aws)
+		v := aws[_]
+		is_string(v)
+	}
 }
 
 principal_is_wildcard(principal_entry) if {
-	principal := object.get(principal_entry, "principal", {})
-	is_object(principal)
-	object.get(principal, "AWS", "") == "*"
-}
-
-principal_arn(principal_entry) := arn if {
-	principal := object.get(principal_entry, "principal", "")
-	is_string(principal)
-	arn := principal
-}
-
-principal_arn(principal_entry) := arn if {
-	principal := object.get(principal_entry, "principal", {})
-	is_object(principal)
-	aws := object.get(principal, "AWS", "")
-	is_string(aws)
-	arn := aws
+	principal_values(principal_entry)["*"]
 }
 
 allow_effect(principal_entry) if {
 	lower(object.get(principal_entry, "effect", "")) == "allow"
 }
 
-principal_account_id(principal_entry) := principal_account if {
-	arn := principal_arn(principal_entry)
+principal_account_id_from_value(arn) := principal_account if {
 	regex.match("^[0-9]{12}$", arn)
-	principal_account := arn
+	principal_account = arn
 }
 
-principal_account_id(principal_entry) := principal_account if {
-	arn := principal_arn(principal_entry)
+principal_account_id_from_value(arn) := principal_account if {
 	parts := split(arn, ":")
 	count(parts) > 4
-	principal_account := parts[4]
+	principal_account = parts[4]
 	regex.match("^[0-9]{12}$", principal_account)
 }
 
@@ -118,7 +116,8 @@ allowed_pi_transfer_regions := {region | region := data.allowed_pi_transfer_regi
 
 principal_region(principal_entry) := region if {
 	allow_effect(principal_entry)
-	principal_account := principal_account_id(principal_entry)
+	arn := principal_values(principal_entry)[_]
+	principal_account := principal_account_id_from_value(arn)
 	region := object.get(data.account_id_to_region, principal_account, "")
 	region != ""
 }
@@ -157,7 +156,8 @@ violation[{"id": "cross_border_principal_undocumented"}] if {
 	count(data.account_id_to_region) > 0
 	principal := principals[_]
 	allow_effect(principal)
-	principal_account := principal_account_id(principal)
+	arn := principal_values(principal)[_]
+	principal_account := principal_account_id_from_value(arn)
 	principal_account != account_id
 	object.get(data.account_id_to_region, principal_account, "") == ""
 }

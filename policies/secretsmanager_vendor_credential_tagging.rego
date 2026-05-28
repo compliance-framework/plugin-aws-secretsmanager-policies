@@ -66,6 +66,11 @@ skip_reason := sprintf("Secret %s is not vendor-scoped; this policy applies only
 
 title := sprintf("Validate vendor credential tags for %s", [secret_arn])
 description := sprintf("Secret %s VendorId=%q IntegrationType=%q.", [secret_arn, vendor_id, integration_type])
+default require_integration_type_tag := true
+
+require_integration_type_tag := false if {
+	data.require_integration_type_tag == false
+}
 
 violation[{"id": "vendor_id_tag_missing"}] if {
 	resource_type == "secret"
@@ -76,7 +81,7 @@ violation[{"id": "vendor_id_tag_missing"}] if {
 violation[{"id": "integration_type_tag_missing"}] if {
 	resource_type == "secret"
 	is_vendor_secret
-	data.require_integration_type_tag
+	require_integration_type_tag
 	vendor_id != ""
 	integration_type == ""
 }
