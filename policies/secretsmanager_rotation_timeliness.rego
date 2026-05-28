@@ -40,10 +40,16 @@ skip_reason := sprintf("Secret %s does not have rotation enabled; rotation confi
 	not rotation_enabled
 }
 
+skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); rotation is AWS-managed.", [secret_arn, owning_service]) if {
+	resource_type == "secret"
+	is_service_linked
+}
+
 rotation_enabled := object.get(config, "rotation_enabled", false)
 last_rotated_date := object.get(config, "last_rotated_date", "")
 rotation_rules := object.get(config, "rotation_rules", {})
 automatically_after_days := object.get(rotation_rules, "automatically_after_days", null)
+schedule_expression := lower(trim_space(object.get(rotation_rules, "schedule_expression", "")))
 
 now_ns := time.now_ns()
 
@@ -53,9 +59,41 @@ days_since_rotation := days if {
 	days := ((((now_ns - last_rotated_ns) / 1000000000) / 60) / 60) / 24
 }
 
-rotation_deadline_days := automatically_after_days * data.rotation_grace_multiplier if {
+automatically_after_days_positive if {
 	automatically_after_days != null
 	automatically_after_days > 0
+}
+
+schedule_rate_days := days if {
+	matches := regex.find_all_string_submatch_n("^rate\\(([0-9]+) days?\\)$", schedule_expression, 1)
+	count(matches) == 1
+	days := to_number(matches[0][1])
+	days > 0
+}
+
+schedule_rate_days_positive if {
+	schedule_rate_days > 0
+}
+
+effective_rotation_days := automatically_after_days if {
+	automatically_after_days_positive
+}
+
+effective_rotation_days := schedule_rate_days if {
+	not automatically_after_days_positive
+	schedule_rate_days_positive
+}
+
+rotation_deadline_days := effective_rotation_days * data.rotation_grace_multiplier
+
+skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%q; collector must provide a normalized day cadence.", [secret_arn, schedule_expression]) if {
+	resource_type == "secret"
+	rotation_enabled
+	not is_service_linked
+	last_rotated_date != ""
+	schedule_expression != ""
+	not automatically_after_days_positive
+	not schedule_rate_days_positive
 }
 
 title := sprintf("Validate rotation timeliness for %s", [secret_arn])
@@ -63,15 +101,15 @@ description := sprintf("Secret %s last_rotated_date=%q and automatically_after_d
 
 violation[{"id": "rotation_never_executed"}] if {
 	resource_type == "secret"
+	not is_service_linked
 	rotation_enabled
 	last_rotated_date == ""
 }
 
 violation[{"id": "rotation_overdue"}] if {
 	resource_type == "secret"
+	not is_service_linked
 	rotation_enabled
 	last_rotated_date != ""
-	automatically_after_days != null
-	automatically_after_days > 0
 	days_since_rotation > rotation_deadline_days
 }
