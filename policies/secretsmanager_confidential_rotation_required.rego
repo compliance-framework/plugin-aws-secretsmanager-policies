@@ -106,7 +106,6 @@ skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%
 	is_confidential
 	not is_service_linked
 	rotation_enabled
-	schedule_expression != ""
 	not automatically_after_days_positive
 	not schedule_rate_days_positive
 }

@@ -48,7 +48,6 @@ description := sprintf("Secret %s replication_status entries are evaluated for F
 
 violation[{"id": "replication_failed"}] if {
 	resource_type == "secret"
-	count(unrecognized_replication_statuses) == 0
 	entry := replication_status[_]
 	object.get(entry, "status", "") == "Failed"
 }

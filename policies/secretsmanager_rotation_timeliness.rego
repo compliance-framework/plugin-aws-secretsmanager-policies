@@ -65,7 +65,7 @@ automatically_after_days_positive if {
 }
 
 schedule_rate_days := days if {
-	matches := regex.find_all_string_submatch_n("^rate\\(([0-9]+) days?\\)$", schedule_expression, 1)
+	matches := regex.find_all_string_submatch_n(`^rate\(([0-9]+) days?\)$`, schedule_expression, 1)
 	count(matches) == 1
 	days := to_number(matches[0][1])
 	days > 0

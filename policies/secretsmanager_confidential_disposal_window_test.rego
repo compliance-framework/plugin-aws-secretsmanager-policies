@@ -61,9 +61,10 @@ test_force_delete if {
 	policy.violation[{"id": "force_delete_used"}] with input as inp
 }
 
-test_unknown_recovery_window_does_not_force_delete if {
+test_zero_recovery_window_violates_minimum_without_force_delete if {
 	zero := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}, {"op": "replace", "path": "/config/recovery_window_days", "value": 0}])
-	count(policy.violation) == 0 with input as zero
+	policy.violation[{"id": "recovery_window_below_confidential_minimum"}] with input as zero
+	not policy.violation[{"id": "force_delete_used"}] with input as zero
 	null_window := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}, {"op": "replace", "path": "/config/recovery_window_days", "value": null}])
 	count(policy.violation) == 0 with input as null_window
 }

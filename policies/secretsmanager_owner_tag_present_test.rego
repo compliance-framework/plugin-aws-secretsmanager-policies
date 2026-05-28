@@ -56,6 +56,11 @@ test_missing_fails if {
 	policy.violation[{"id": "owner_tag_missing"}] with input as inp
 }
 
+test_whitespace_owner_tag_fails if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/tags/Owner", "value": "   "}])
+	policy.violation[{"id": "owner_tag_missing"}] with input as inp
+}
+
 test_case_insensitive_key_passes if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/tags", "value": {"oWnEr": "platform"}}])
 	count(policy.violation) == 0 with input as inp

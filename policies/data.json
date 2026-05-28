@@ -13,7 +13,7 @@
     "secretsmanager:DeleteSecret",
     "secretsmanager:PutResourcePolicy"
   ],
-  "require_admin_audit_events": false,
+  "require_admin_audit_events": true,
   "admin_event_names": [
     "PutResourcePolicy",
     "DeleteResourcePolicy",

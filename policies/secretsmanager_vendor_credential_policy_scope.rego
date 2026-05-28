@@ -111,7 +111,7 @@ action_list(principal_entry) := [raw] if {
 
 principal_account_id(principal_entry) := principal_account if {
 	arn := principal_arn(principal_entry)
-	regex.match("^[0-9]{12}$", arn)
+	regex.match(`^[0-9]{12}$`, arn)
 	principal_account := arn
 }
 
@@ -120,7 +120,7 @@ principal_account_id(principal_entry) := principal_account if {
 	parts := split(arn, ":")
 	count(parts) > 4
 	principal_account := parts[4]
-	regex.match("^[0-9]{12}$", principal_account)
+	regex.match(`^[0-9]{12}$`, principal_account)
 }
 
 resource_policy_present := object.get(config, "resource_policy_present", false)

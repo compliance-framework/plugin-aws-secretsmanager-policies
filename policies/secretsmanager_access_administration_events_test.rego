@@ -50,9 +50,14 @@ base_secret := {
 	},
 }
 
-test_default_not_required if {
+test_default_requires_admin_events if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": []}])
-	count(policy.violation) == 0 with input as inp
+	policy.violation[{"id": "admin_events_missing"}] with input as inp
+}
+
+test_requirement_can_be_disabled if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": []}])
+	count(policy.violation) == 0 with input as inp with data.require_admin_audit_events as false
 }
 
 test_missing_when_required if {

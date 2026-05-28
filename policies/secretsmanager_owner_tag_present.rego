@@ -46,7 +46,8 @@ required_owner_tag_keys_normalized := {lower(k) | k := data.required_owner_tag_k
 
 owner_tag_present if {
 	some key, value in tags
-	value != ""
+	is_string(value)
+	trim_space(value) != ""
 	required_owner_tag_keys_normalized[lower(key)]
 }
 

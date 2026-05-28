@@ -77,6 +77,10 @@ test_bare_account_principals if {
 	count(policy.violation) == 0 with input as same
 	cross := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "999999999999"}])
 	policy.violation[{"id": "cross_account_principal"}] with input as cross
+}
+
+test_allowed_cross_account_principals_ignored_for_confidential_policy if {
+	cross := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "999999999999"}])
 	policy.violation[{"id": "cross_account_principal"}] with input as cross with data.allowed_cross_account_principals as ["999999999999"]
 }
 

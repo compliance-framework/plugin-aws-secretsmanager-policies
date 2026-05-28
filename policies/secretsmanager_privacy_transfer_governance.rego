@@ -69,7 +69,7 @@ principals := object.get(object.get(config, "resource_policy", {}), "principals"
 account_id := object.get(account, "account_id", "")
 
 principal_values(principal_entry) := values if {
-	values := {v |
+	values := ({v |
 		principal := object.get(principal_entry, "principal", "")
 		is_string(principal)
 		v := principal
@@ -79,7 +79,7 @@ principal_values(principal_entry) := values if {
 		aws := object.get(principal, "AWS", "")
 		is_string(aws)
 		v := aws
-	} | {v |
+	}) | {v |
 		principal := object.get(principal_entry, "principal", {})
 		is_object(principal)
 		aws := object.get(principal, "AWS", [])

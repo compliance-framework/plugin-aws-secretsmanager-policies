@@ -66,6 +66,7 @@ skip_reason := sprintf("Secret %s is not vendor-scoped; this policy applies only
 
 title := sprintf("Validate vendor credential tags for %s", [secret_arn])
 description := sprintf("Secret %s VendorId=%q IntegrationType=%q.", [secret_arn, vendor_id, integration_type])
+
 default require_integration_type_tag := true
 
 require_integration_type_tag := false if {

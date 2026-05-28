@@ -80,29 +80,29 @@ in_scope if {
 principals := object.get(object.get(config, "resource_policy", {}), "principals", [])
 account_id := object.get(account, "account_id", "")
 
-principal_is_wildcard(principal_entry) if {
-	principal := object.get(principal_entry, "principal", "")
-	principal == "*"
+principal_values(principal_entry) := values if {
+	values := ({v |
+		principal := object.get(principal_entry, "principal", "")
+		is_string(principal)
+		v := principal
+	} | {v |
+		principal := object.get(principal_entry, "principal", {})
+		is_object(principal)
+		aws := principal.AWS
+		is_string(aws)
+		v := aws
+	}) | {v |
+		principal := object.get(principal_entry, "principal", {})
+		is_object(principal)
+		aws := principal.AWS
+		is_array(aws)
+		v := aws[_]
+		is_string(v)
+	}
 }
 
 principal_is_wildcard(principal_entry) if {
-	principal := object.get(principal_entry, "principal", {})
-	is_object(principal)
-	object.get(principal, "AWS", "") == "*"
-}
-
-principal_arn(principal_entry) := arn if {
-	principal := object.get(principal_entry, "principal", "")
-	is_string(principal)
-	arn := principal
-}
-
-principal_arn(principal_entry) := arn if {
-	principal := object.get(principal_entry, "principal", {})
-	is_object(principal)
-	aws := object.get(principal, "AWS", "")
-	is_string(aws)
-	arn := aws
+	principal_values(principal_entry)["*"]
 }
 
 allow_effect(principal_entry) if {
@@ -119,14 +119,6 @@ action_list(principal_entry) := [raw] if {
 	raw := object.get(principal_entry, "action", "")
 	is_string(raw)
 	raw != ""
-}
-
-principal_account_id(principal_entry) := principal_account if {
-	arn := principal_arn(principal_entry)
-	parts := split(arn, ":")
-	count(parts) > 4
-	principal_account := parts[4]
-	regex.match("^[0-9]{12}$", principal_account)
 }
 
 kms_key_id := object.get(config, "kms_key_id", "")
@@ -198,7 +190,7 @@ violation[{"id": "principal_outside_integration_role_set"}] if {
 	vendor_documented
 	principal := principals[_]
 	allow_effect(principal)
-	arn := principal_arn(principal)
+	arn := principal_values(principal)[_]
 	not documented_roles_for_vendor_set[arn]
 }
 
