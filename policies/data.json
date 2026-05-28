@@ -1,0 +1,53 @@
+{
+  "allow_aws_managed_default_kms_for_arns": [],
+  "allowed_cross_account_principals": [],
+  "rotation_grace_multiplier": 1.2,
+  "min_recovery_window_days": 7,
+  "allowed_force_delete_secret_arns": [],
+  "required_owner_tag_keys": [
+    "Owner",
+    "Team"
+  ],
+  "admin_action_set": [
+    "secretsmanager:*",
+    "secretsmanager:DeleteSecret",
+    "secretsmanager:PutResourcePolicy"
+  ],
+  "require_admin_audit_events": false,
+  "admin_event_names": [
+    "PutResourcePolicy",
+    "DeleteResourcePolicy",
+    "RotateSecret",
+    "UpdateSecret",
+    "UpdateSecretVersionStage",
+    "TagResource",
+    "UntagResource"
+  ],
+  "change_review_window_days": 90,
+  "require_integration_type_tag": true,
+  "vendor_rotation_max_days": 365,
+  "allowed_unrotated_vendor_arns": [],
+  "allowed_vendor_actions": [
+    "secretsmanager:GetSecretValue",
+    "secretsmanager:DescribeSecret"
+  ],
+  "allowed_vendor_partner_accounts": [],
+  "confidential_classification_values": [
+    "confidential"
+  ],
+  "max_confidential_rotation_days": 90,
+  "cleared_principal_arns": [],
+  "min_confidential_recovery_window_days": 30,
+  "require_disposal_record": true,
+  "privacy_scope_values": [
+    "pi"
+  ],
+  "pi_rotation_max_days": 180,
+  "documented_integration_roles": {},
+  "allowed_pi_actions": [
+    "secretsmanager:GetSecretValue"
+  ],
+  "documented_data_subject_flows": [],
+  "account_id_to_region": {},
+  "allowed_pi_transfer_regions": []
+}

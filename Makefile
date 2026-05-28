@@ -8,7 +8,7 @@ endif
 test:        ## Run policy unit tests
 	@$(OPA) test policies
 
-validate:    ## Lint/parse policies
+validate:    ## Strict-check policies
 	@$(OPA) check --strict policies
 
 clean:

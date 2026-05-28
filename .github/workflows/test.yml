@@ -1,26 +1,21 @@
-name: OPA Test
-
 on:
   workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v4
-
-      - name: Setup OPA
-        uses: open-policy-agent/setup-opa@v2
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: open-policy-agent/setup-opa@b2b258e089860efaadaaf71bf6e3aecb4a3eeff1
         with:
           version: 1.6.0
-
-      - name: Run OPA Format Check
-        run: opa fmt --list --fail policies
-
-      - name: Run OPA Check
-        run: opa check --strict policies
-
-      - name: Run OPA Tests
-        run: opa test policies
+      - run: opa fmt --list --fail policies
+      - run: opa check --strict policies
+      - run: opa test policies

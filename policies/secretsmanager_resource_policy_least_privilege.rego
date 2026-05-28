@@ -1,0 +1,95 @@
+package compliance_framework.secretsmanager_resource_policy_least_privilege
+
+# METADATA
+# title: Secrets Manager resource policy uses least-privilege principals
+# description: Checks secret resource policies for wildcard and undocumented cross-account principals.
+# custom:
+#   metric_ids:
+#     - SECRETS_MANAGER_ROTATION
+#   controls:
+#     - ctrl-cc5-1-006
+#     - ctrl-cc6-2-014
+#     - ctrl-cc6-3-004
+#     - ctrl-cc6-2-023
+
+risk_templates := [{
+	"name": "Secrets Manager resource policy grants excessive access",
+	"title": "Broad Resource Policies Can Expose Secret Values or Administration",
+	"statement": "Wildcard, undocumented, or over-privileged principals in a secret resource policy can grant access outside the intended trust boundary.",
+	"likelihood_hint": "medium",
+	"impact_hint": "high",
+	"threat_refs": [{"system": "https://cwe.mitre.org", "external_id": "CWE-732", "title": "Incorrect Permission Assignment for Critical Resource", "url": "https://cwe.mitre.org/data/definitions/732.html"}],
+	"remediation": {"title": "Constrain the resource policy", "description": "Replace wildcard principals, reduce actions, and document required partner access.", "tasks": [{"title": "Remove wildcard principals"}, {"title": "Record approved principals"}]},
+}]
+
+config := object.get(input, "config", {})
+resource := object.get(input, "resource", {})
+account := object.get(input, "account", {})
+resource_type := object.get(resource, "type", "")
+secret_arn := object.get(config, "secret_arn", object.get(resource, "arn", "unknown"))
+owning_service := object.get(config, "owning_service", "")
+
+is_service_linked if {
+	owning_service != ""
+}
+
+skip_reason := sprintf("Resource type %q is not a secret; this policy only applies to secret records.", [resource_type]) if {
+	resource_type != "secret"
+}
+
+principals := object.get(object.get(config, "resource_policy", {}), "principals", [])
+account_id := object.get(account, "account_id", "")
+
+principal_is_wildcard(principal_entry) if {
+	principal := object.get(principal_entry, "principal", "")
+	principal == "*"
+}
+
+principal_is_wildcard(principal_entry) if {
+	principal := object.get(principal_entry, "principal", {})
+	is_object(principal)
+	object.get(principal, "AWS", "") == "*"
+}
+
+principal_arn(principal_entry) := arn if {
+	principal := object.get(principal_entry, "principal", "")
+	is_string(principal)
+	arn := principal
+}
+
+principal_arn(principal_entry) := arn if {
+	principal := object.get(principal_entry, "principal", {})
+	is_object(principal)
+	aws := object.get(principal, "AWS", "")
+	is_string(aws)
+	arn := aws
+}
+
+principal_account_id(principal_entry) := principal_account if {
+	arn := principal_arn(principal_entry)
+	parts := split(arn, ":")
+	count(parts) > 4
+	principal_account := parts[4]
+	regex.match("^[0-9]{12}$", principal_account)
+}
+
+resource_policy_present := object.get(config, "resource_policy_present", false)
+allowed_cross_account_ids := {id | id := data.allowed_cross_account_principals[_]}
+title := sprintf("Validate resource policy principal scope for %s", [secret_arn])
+description := sprintf("Secret %s resource_policy_present=%v.", [secret_arn, resource_policy_present])
+
+violation[{"id": "wildcard_principal"}] if {
+	resource_type == "secret"
+	resource_policy_present
+	principal := principals[_]
+	principal_is_wildcard(principal)
+}
+
+violation[{"id": "cross_account_principal_undocumented"}] if {
+	resource_type == "secret"
+	resource_policy_present
+	principal := principals[_]
+	principal_account := principal_account_id(principal)
+	principal_account != account_id
+	not allowed_cross_account_ids[principal_account]
+}
