@@ -1,0 +1,860 @@
+lisa-addressed:
+---
+Comment (.github/workflows/build-and-upload.yml:18):
+_🧹 Nitpick_ | _🔵 Trivial_ | _💤 Low value_
+
+**Consider disabling implicit caching to mitigate cache-poisoning risk.**
+
+`actions/setup-go` enables caching by default, which can be vulnerable to cache poisoning attacks in certain CI configurations. If caching is not critical for this workflow, explicitly disable it.
+
+<details>
+<summary>🔧 Proposed fix</summary>
+
+```diff
+       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+         with:
+           go-version: '1.24.x'
++          cache: false
+```
+</details>
+
+<details>
+<summary>🧰 Tools</summary>
+
+<details>
+<summary>🪛 zizmor (1.25.2)</summary>
+
+[error] 16-16: runtime artifacts potentially vulnerable to a cache poisoning attack (cache-poisoning): enables caching by default
+
+(cache-poisoning)
+
+</details>
+
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In @.github/workflows/build-and-upload.yml around lines 16 - 18, The workflow
+currently uses actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c which
+enables implicit caching by default; to mitigate cache-poisoning risk add the
+cache: false setting under the with: block (alongside go-version: '1.24.x') so
+the step explicitly disables setup-go caching.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:medusa:ocelot -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/data.json:16):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Enable admin audit-event enforcement by default.**
+
+`"require_admin_audit_events": false` weakens baseline compliance posture by disabling privileged admin-event validation out of the box.
+
+<details>
+<summary>🔧 Suggested change</summary>
+
+```diff
+-  "require_admin_audit_events": false,
++  "require_admin_audit_events": true,
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+  "require_admin_audit_events": true,
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/data.json` at line 16, Update the default policy to enable admin
+audit-event enforcement by setting the require_admin_audit_events flag to true
+so privileged admin-event validation is enforced by default; locate the
+require_admin_audit_events entry in the policies/data.json and change its value
+from false to true, and run any policy validation/formatting checks to ensure
+the JSON remains valid.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_confidential_disposal_window.rego:82):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Zero-day recovery window bypasses the minimum-window violation.**
+
+With `deleted_date` set, `recovery_window_days == 0` currently passes because of `recovery_window_days > 0`, even though it is below the configured confidential minimum.
+
+<details>
+<summary>Suggested fix</summary>
+
+```diff
+ violation[{"id": "recovery_window_below_confidential_minimum"}] if {
+ 	resource_type == "secret"
+ 	is_confidential
+ 	deleted_date != ""
+ 	recovery_window_days != null
+-	recovery_window_days > 0
+ 	recovery_window_days < data.min_confidential_recovery_window_days
+ }
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+violation[{"id": "recovery_window_below_confidential_minimum"}] if {
+	resource_type == "secret"
+	is_confidential
+	deleted_date != ""
+	recovery_window_days != null
+	recovery_window_days < data.min_confidential_recovery_window_days
+}
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_confidential_disposal_window.rego` around lines 75 -
+82, The rule "recovery_window_below_confidential_minimum" currently excludes
+zero-day windows due to the `recovery_window_days > 0` guard; update the
+condition in that rule (referencing
+`violation[{"id":"recovery_window_below_confidential_minimum"}]`,
+`resource_type`, `is_confidential`, `deleted_date`, `recovery_window_days`, and
+`data.min_confidential_recovery_window_days`) to treat any non-null
+recovery_window_days (including 0) as subject to the minimum check — i.e.,
+remove the `> 0` check and keep the `recovery_window_days != null` and
+`recovery_window_days < data.min_confidential_recovery_window_days` checks so
+zero-day windows are flagged.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_confidential_policy_scope_test.rego:81):
+_🧹 Nitpick_ | _🔵 Trivial_ | _⚡ Quick win_
+
+**Clarify or remove the unused allowlist override in test intent.**
+
+Line 80 asserts the same `cross_account_principal` outcome even when `data.allowed_cross_account_principals` is set; this makes the test read like an unsupported allowlist contract. Either remove that override or rename/split the test to explicitly state that this data key has no effect here.
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_confidential_policy_scope_test.rego` around lines 75
+- 81, The test_bare_account_principals case includes an unused allowlist
+override (data.allowed_cross_account_principals) which contradicts the test
+intent; either remove the final line that repeats the assertion with the with
+data override or split/rename the test to explicitly assert that
+data.allowed_cross_account_principals does not affect outcomes. Locate
+test_bare_account_principals and either delete the line `policy.violation[{"id":
+"cross_account_principal"}] with input as cross with
+data.allowed_cross_account_principals as ["999999999999"]` to keep the test
+focused, or create a separate test (e.g., test_allowed_cross_account_principals)
+that sets data.allowed_cross_account_principals and asserts the expected
+(allowed) behavior against policy.violation using the same base_secret/cross
+input.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_confidential_policy_scope.rego:90):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Fix formatter drift blocking CI.**
+
+Line 71–90 currently fails `opa fmt --list --fail` for this file, which blocks the pipeline. Please run `opa fmt policies/secretsmanager_confidential_policy_scope.rego` and commit the formatted output.
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_confidential_policy_scope.rego` around lines 71 - 90,
+The file fails the OPA formatter (opa fmt --list --fail) due to formatting drift
+in the principal_values(principal_entry) rule; fix by running opa fmt on the
+file (or reformat the principal_values(principal_entry) rule to match opa fmt
+output), verify opa fmt reports no changes, and commit the formatted file so CI
+passes.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_confidential_rotation_required.rego:112):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Handle missing cadence as non-evaluable instead of silently passing.**
+
+Enabled rotation with neither a positive `automatically_after_days` nor a parseable `schedule_expression` currently emits no `violation` and no `skip_reason` when `schedule_expression` is empty. That creates a policy blind spot.
+
+<details>
+<summary>Suggested fix</summary>
+
+```diff
+ skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%q; collector must provide a normalized day cadence.", [secret_arn, schedule_expression]) if {
+ 	resource_type == "secret"
+ 	is_confidential
+ 	not is_service_linked
+ 	rotation_enabled
+-	schedule_expression != ""
+ 	not automatically_after_days_positive
+ 	not schedule_rate_days_positive
+ }
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%q; collector must provide a normalized day cadence.", [secret_arn, schedule_expression]) if {
+	resource_type == "secret"
+	is_confidential
+	not is_service_linked
+	rotation_enabled
+	not automatically_after_days_positive
+	not schedule_rate_days_positive
+}
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_confidential_rotation_required.rego` around lines 104
+- 112, The current skip_reason assignment for unsupported rotation cadence skips
+setting a message when schedule_expression is empty and neither
+automatically_after_days_positive nor schedule_rate_days_positive is true;
+update the guard for skip_reason (the block that defines skip_reason in
+policies/secretsmanager_confidential_rotation_required.rego) so it also triggers
+when schedule_expression == "" and both automatically_after_days_positive and
+schedule_rate_days_positive are false (i.e., treat missing cadence as
+non-evaluable), ensuring skip_reason explains that rotation is enabled but no
+positive automatically_after_days nor parseable
+schedule_expression/schedule_rate_days were provided.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_owner_tag_present.rego:51):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Whitespace-only owner tags are treated as valid.**
+
+On **Line 49**, `value != ""` allows `"   "` to satisfy `owner_tag_present`, which can bypass this control with effectively empty ownership metadata.
+
+<details>
+<summary>Proposed fix</summary>
+
+```diff
+ owner_tag_present if {
+ 	some key, value in tags
+-	value != ""
++	is_string(value)
++	trim_space(value) != ""
+ 	required_owner_tag_keys_normalized[lower(key)]
+ }
+```
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_owner_tag_present.rego` around lines 47 - 51, The
+rule owner_tag_present currently treats whitespace-only values as valid because
+it checks value != ""; update the condition to check trimmed content instead
+(e.g., use trim(value) != "" or count(trim(value)) > 0) so that tags containing
+only whitespace do not satisfy owner_tag_present; modify the clause in the
+owner_tag_present rule that references tags and
+required_owner_tag_keys_normalized[lower(key)] to use the trimmed value check.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_privacy_subprocessor_posture.rego:92):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+<details>
+<summary>🧩 Analysis chain</summary>
+
+🌐 Web query:
+
+`According to AWS IAM resource-based policy syntax, can "Principal": {"AWS": ...} be an array of ARNs, and is "*" valid within that array?`
+
+💡 Result:
+
+Yes. In AWS IAM resource-based policy syntax (and IAM role trust policies), the Principal → AWS value can be an array of principal identifiers (for example, multiple ARNs/identifiers). AWS’s documentation shows “Principal”: { “AWS”: [ … ] } to specify more than one principal [1]. And yes—when using the array under Principal → AWS, “*” is valid as an element to mean “everyone/anonymous.” The IAM policy grammar explicitly allows the principal id list to contain “*” (everyone/anonymous) [2]. Example forms: 1) Multiple ARNs in an array: “Principal”: { “AWS”: [“arn:aws:iam::1111:role/A”, “arn:aws:iam::2222:role/B”] } [1] 2) Wildcard in that array: “Principal”: { “AWS”: [“*”] } (grammar allows “*” as a principal identifier) [2] Note: “Principal” is required only in resource-based policies/trust policies; identity-based IAM policies do not include a Principal element [3].
+
+Citations:
+
+- 1: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+- 2: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_grammar.html
+- 3: https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+FILE="policies/secretsmanager_privacy_subprocessor_posture.rego"
+echo "== File exists? =="
+ls -l "$FILE" || true
+
+echo
+echo "== Lines 70-120 =="
+nl -ba "$FILE" | sed -n '70,120p'
+
+echo
+echo "== Lines 170-230 =="
+nl -ba "$FILE" | sed -n '170,230p'
+
+echo
+echo "== Functions / rules referencing Principal.AWS =="
+rg -n "principal_.*(wildcard|arn)|Principal|AWS\"" "$FILE" || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 307
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+FILE="policies/secretsmanager_privacy_subprocessor_posture.rego"
+echo "== File exists? =="
+ls -l "$FILE" || true
+
+echo
+echo "== Lines 70-120 =="
+nl -ba "$FILE" | sed -n '70,120p'
+
+echo
+echo "== Lines 170-230 =="
+nl -ba "$FILE" | sed -n '170,230p'
+
+echo
+echo "== Rules referencing Principal/AWS =="
+rg -n "(principal_.*(wildcard|arn)|principal_outside_integration_role_set|\"AWS\"|Principal)" "$FILE" || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 307
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+FILE="policies/secretsmanager_privacy_subprocessor_posture.rego"
+echo "== File exists? =="
+ls -l "$FILE" || true
+
+echo
+echo "== Lines 70-120 =="
+awk 'NR>=70 && NR<=120 {printf "%5d\t%s\n", NR, $0}' "$FILE"
+
+echo
+echo "== Lines 170-230 =="
+awk 'NR>=170 && NR<=230 {printf "%5d\t%s\n", NR, $0}' "$FILE"
+
+echo
+echo "== Rules referencing Principal/AWS =="
+rg -n '(principal_[a-z_]*(wildcard|arn)|principal_outside_integration_role_set|Principal|\"AWS\"|principal_arn|principal_is_wildcard)' "$FILE" || true
+
+echo
+echo "== principal_wildcard / principal_outside_integration_role_set definitions (broader) =="
+rg -n '(principal_wildcard|principal_outside_integration_role_set)\b' "$FILE" || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 3575
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+FILE="policies/secretsmanager_privacy_subprocessor_posture.rego"
+
+echo "== Search for AWS array handling patterns =="
+rg -n "is_array\\(aws\\)|is_array\\(.*AWS|object\\.get\\(principal, \"AWS\"|principal.*AWS" "$FILE" || true
+
+echo
+echo "== Search for principal_arn principal_is_wildcard definitions =="
+rg -n "principal_is_wildcard\\(|principal_arn\\(" "$FILE" || true
+
+echo
+echo "== Search for principal_arn usage =="
+rg -n "principal_arn\\(" "$FILE" || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 815
+
+---
+
+</details>
+
+**Handle `Principal.AWS` arrays to avoid policy blind spots**
+
+`principal_is_wildcard` (88-92) and `principal_arn` (100-106) only treat `Principal.AWS` as a string, but AWS resource/trust policy syntax allows `Principal: { "AWS": [...] }` (including `"*"` as an element). As a result, `violation[{"id":"principal_wildcard"}]` (180-186) and `violation[{"id":"principal_outside_integration_role_set"}]` (195-203) can miss wildcard/out-of-set principals.
+
+<details>
+<summary>Proposed fix</summary>
+
+```diff
+ principal_is_wildcard(principal_entry) if {
+ 	principal := object.get(principal_entry, "principal", {})
+ 	is_object(principal)
+ 	object.get(principal, "AWS", "") == "*"
+ }
++
++principal_is_wildcard(principal_entry) if {
++	principal := object.get(principal_entry, "principal", {})
++	is_object(principal)
++	aws := object.get(principal, "AWS", [])
++	is_array(aws)
++	aws[_] == "*"
++}
+@@
+ principal_arn(principal_entry) := arn if {
+ 	principal := object.get(principal_entry, "principal", {})
+ 	is_object(principal)
+ 	aws := object.get(principal, "AWS", "")
+ 	is_string(aws)
+ 	arn := aws
+ }
++
++principal_arn(principal_entry) := arn if {
++	principal := object.get(principal_entry, "principal", {})
++	is_object(principal)
++	aws := object.get(principal, "AWS", [])
++	is_array(aws)
++	arn := aws[_]
++	is_string(arn)
++}
+```
+</details>
+
+<details>
+<summary>🧰 Tools</summary>
+
+<details>
+<summary>🪛 Regal (0.40.0)</summary>
+
+[error] 91-91: Superfluous `object.get` call
+
+(idiomatic)
+
+</details>
+
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_privacy_subprocessor_posture.rego` around lines 88 -
+92, principal_is_wildcard and principal_arn currently assume Principal.AWS is a
+string; update both to handle arrays: in principal_is_wildcard(principal_entry)
+(and any helper it uses) treat object.get(principal_entry, "principal", {}) ->
+AWS field as either a string or an array—return true if AWS is "*" or if it's an
+array containing "*" ; in principal_arn (and any normalization logic used by
+violation checks) iterate AWS array elements to produce/compare ARNs (or a set)
+and treat presence of "*" as the wildcard ARN case; ensure the violation checks
+that use principal_arn (affecting violation {"id":"principal_wildcard"} and
+{"id":"principal_outside_integration_role_set"}) handle the normalized array/set
+return shape so wildcard and out-of-set principals are not missed.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_replication_in_sync_test.rego:69):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Do not let unknown replica status mask a definitive failed replica.**
+
+At Line 67, this test codifies a false negative: one replica is `Failed`, but the assertion expects no `replication_failed` violation because another replica is `PausedByAWS`. Failed replicas should still be reported.
+
+<details>
+<summary>Suggested test expectation update</summary>
+
+```diff
+-test_unknown_status_short_circuits_failed_replica if {
++test_failed_replica_not_masked_by_unknown_status if {
+ 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/replication_status", "value": [{"region": "us-west-2", "status": "Failed"}, {"region": "eu-west-1", "status": "PausedByAWS"}]}])
+-	not policy.violation[{"id": "replication_failed"}] with input as inp
+-	policy.skip_reason with input as inp
++	policy.violation[{"id": "replication_failed"}] with input as inp
+ }
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+test_failed_replica_not_masked_by_unknown_status if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/replication_status", "value": [{"region": "us-west-2", "status": "Failed"}, {"region": "eu-west-1", "status": "PausedByAWS"}]}])
+	policy.violation[{"id": "replication_failed"}] with input as inp
+}
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_replication_in_sync_test.rego` around lines 65 - 69,
+The test test_unknown_status_short_circuits_failed_replica incorrectly expects
+no replication_failed violation when one replica has status "Failed" and another
+is "PausedByAWS"; update the assertion so the patched input (created via
+json.patch on base_secret) asserts that policy.violation contains
+{"id":"replication_failed"} (i.e., change the "not policy.violation[...]" line
+to assert the presence of the violation for "replication_failed") and remove or
+adjust the policy.skip_reason line so the test verifies the failed-replica is
+reported.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_resource_policy_least_privilege.rego:73):
+_🧹 Nitpick_ | _🔵 Trivial_ | _💤 Low value_
+
+**Use raw strings for regex patterns.**
+
+Backtick-delimited raw strings are idiomatic for regex patterns in Rego.
+
+<details>
+<summary>♻️ Proposed fix</summary>
+
+```diff
+ principal_account_id_from_value(arn) := principal_account if {
+-	regex.match("^[0-9]{12}$", arn)
++	regex.match(`^[0-9]{12}$`, arn)
+ 	principal_account = arn
+ }
+
+ principal_account_id_from_value(arn) := principal_account if {
+ 	parts := split(arn, ":")
+ 	count(parts) > 4
+ 	principal_account = parts[4]
+-	regex.match("^[0-9]{12}$", principal_account)
++	regex.match(`^[0-9]{12}$`, principal_account)
+ }
+```
+</details>
+
+Also applies to: 81-81
+
+<details>
+<summary>🧰 Tools</summary>
+
+<details>
+<summary>🪛 Regal (0.40.0)</summary>
+
+[error] 73-73: Use raw strings for regex patterns
+
+(idiomatic)
+
+</details>
+
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_resource_policy_least_privilege.rego` at line 73, The
+regex patterns passed to regex.match are regular string literals; change them to
+Rego raw string literals using backticks (e.g., replace
+regex.match("^[0-9]{12}$", arn) with regex.match(`^[0-9]{12}$`, arn)) so escape
+sequences are handled idiomatically; apply the same fix to the other occurrence
+of regex.match in the file (the second pattern at the similar call site).
+```
+
+</details>
+
+<!-- fingerprinting:phantom:medusa:ocelot -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_rotation_timeliness.rego:68):
+_🧹 Nitpick_ | _🔵 Trivial_ | _💤 Low value_
+
+**Use raw string for regex pattern.**
+
+Backtick-delimited raw strings are idiomatic for regex patterns in Rego.
+
+<details>
+<summary>♻️ Proposed fix</summary>
+
+```diff
+ schedule_rate_days := days if {
+-	matches := regex.find_all_string_submatch_n("^rate\\(([0-9]+) days?\\)$", schedule_expression, 1)
++	matches := regex.find_all_string_submatch_n(`^rate\(([0-9]+) days?\)$`, schedule_expression, 1)
+ 	count(matches) == 1
+ 	days := to_number(matches[0][1])
+ 	days > 0
+ }
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+ schedule_rate_days := days if {
+ 	matches := regex.find_all_string_submatch_n(`^rate\(([0-9]+) days?\)$`, schedule_expression, 1)
+ 	count(matches) == 1
+ 	days := to_number(matches[0][1])
+ 	days > 0
+ }
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🧰 Tools</summary>
+
+<details>
+<summary>🪛 Regal (0.40.0)</summary>
+
+[error] 68-68: Use raw strings for regex patterns
+
+(idiomatic)
+
+</details>
+
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_rotation_timeliness.rego` at line 68, The regex
+pattern passed to regex.find_all_string_submatch_n should use a
+backtick-delimited raw string instead of a normal quoted string; update the call
+that assigns matches (matches := regex.find_all_string_submatch_n(...,
+schedule_expression, 1)) to supply the pattern as a raw string literal (e.g.,
+use backticks around ^rate\(([0-9]+) days?\)$) so Rego treats backslashes
+literally and the pattern is idiomatic.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:medusa:ocelot -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_vendor_credential_policy_scope.rego:114):
+_🧹 Nitpick_ | _🔵 Trivial_ | _💤 Low value_
+
+**Use raw strings for regex patterns.**
+
+Rego raw strings (backtick-delimited) prevent escaping issues and are idiomatic for regex patterns.
+
+<details>
+<summary>♻️ Proposed fix</summary>
+
+```diff
+ principal_account_id(principal_entry) := principal_account if {
+ 	arn := principal_arn(principal_entry)
+-	regex.match("^[0-9]{12}$", arn)
++	regex.match(`^[0-9]{12}$`, arn)
+ 	principal_account := arn
+ }
+
+ principal_account_id(principal_entry) := principal_account if {
+ 	arn := principal_arn(principal_entry)
+ 	parts := split(arn, ":")
+ 	count(parts) > 4
+ 	principal_account := parts[4]
+-	regex.match("^[0-9]{12}$", principal_account)
++	regex.match(`^[0-9]{12}$`, principal_account)
+ }
+```
+</details>
+
+Also applies to: 123-123
+
+<details>
+<summary>🧰 Tools</summary>
+
+<details>
+<summary>🪛 Regal (0.40.0)</summary>
+
+[error] 114-114: Use raw strings for regex patterns
+
+(idiomatic)
+
+</details>
+
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_vendor_credential_policy_scope.rego` at line 114, The
+regex pattern uses a normal quoted string causing potential escaping issues;
+replace the string literal in the regex.match call (e.g.,
+regex.match("^[0-9]{12}$", arn)) with a Rego raw string using backticks (e.g.,
+regex.match(`^[0-9]{12}$`, arn)); do the same for any other occurrences (noted
+around the other match at lines 123-123) so all regex patterns use
+backtick-delimited raw strings.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:medusa:ocelot -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+Implementation guidance: In .github/workflows/build-and-upload.yml, update the actions/setup-go step under jobs.build-and-upload.steps so the with block contains cache: false alongside go-version: '1.24.x'. Keep the existing pinned action SHA and do not alter the already-scoped job permissions or sanitized OCI tag logic.
+Implementation guidance: In policies/data.json, change the top-level require_admin_audit_events default from false to true. Preserve JSON formatting and run the policy/test validation used by this repo so callers get admin audit-event enforcement by default.
+Implementation guidance: In policies/secretsmanager_confidential_disposal_window.rego, update violation[{"id": "recovery_window_below_confidential_minimum"}] so any non-null recovery_window_days below data.min_confidential_recovery_window_days is a violation, including 0. Remove only the recovery_window_days > 0 guard; keep resource_type == "secret", is_confidential, deleted_date != "", recovery_window_days != null, and the minimum comparison. Do not reintroduce force-delete inference from recovery_window_days; force-delete must remain governed by force_delete_without_recovery.
+Implementation guidance: In policies/secretsmanager_confidential_policy_scope_test.rego, keep the confidential policy behavior that data.allowed_cross_account_principals has no effect. Make the intent explicit by moving the final assertion in test_bare_account_principals into a separate test named like test_allowed_cross_account_principals_ignored_for_confidential_policy, or by renaming/splitting the existing test. Do not change the production confidential policy to honor allowed_cross_account_principals; that would violate the design that confidential policy has no cross-account exception.
+Implementation guidance: Run opa fmt on policies/secretsmanager_confidential_policy_scope.rego and commit the formatted result. The expected change is formatting-only around principal_values(principal_entry); do not change rule behavior while addressing this thread. Verify with opa fmt --list --fail policies/secretsmanager_confidential_policy_scope.rego.
+Implementation guidance: In policies/secretsmanager_confidential_rotation_required.rego, update the unsupported-cadence skip_reason rule so it also fires when schedule_expression == "" and neither automatically_after_days_positive nor schedule_rate_days_positive is true. Remove the schedule_expression != "" guard from that skip_reason block, and adjust the message if needed so it clearly says rotation is enabled but no positive automatically_after_days or supported schedule_expression cadence was available. Keep service-linked secrets skipped as AWS-managed.
+Implementation guidance: In policies/secretsmanager_owner_tag_present.rego, update owner_tag_present so a required owner tag only counts when its value is a string with non-whitespace content. Replace value != "" with is_string(value) and trim_space(value) != "" before required_owner_tag_keys_normalized[lower(key)]. Add or update a focused test to cover a whitespace-only Owner or Team tag if tests exist for this policy.
+Implementation guidance: In policies/secretsmanager_privacy_subprocessor_posture.rego, normalize Principal.AWS values so both string and array forms are evaluated. Add a helper similar to principal_values(principal_entry) used in the generic/confidential policy scope files: include a direct string principal, object Principal.AWS as a string, and each string element of object Principal.AWS when it is an array. Rewrite principal_is_wildcard to check that normalized set for "*", and rewrite principal_arn/principal_outside_integration_role_set to iterate each normalized ARN/string so wildcard and out-of-set entries in AWS arrays are not missed. Keep allow_effect filtering, and avoid superfluous object.get patterns that Regal flags.
+Implementation guidance: In policies/secretsmanager_replication_in_sync.rego, do not suppress known Failed replicas just because another replica has an unrecognized status. Remove the count(unrecognized_replication_statuses) == 0 guard from violation[{"id": "replication_failed"}] so any entry with status "Failed" emits the violation. Keep the existing skip_reason for unrecognized statuses so unknown future enum values are still surfaced as non-evaluable rather than converted into violations. Then update policies/secretsmanager_replication_in_sync_test.rego by renaming test_unknown_status_short_circuits_failed_replica to test_failed_replica_not_masked_by_unknown_status, asserting policy.violation[{"id": "replication_failed"}] for the mixed Failed/PausedByAWS input, and not requiring that the violation be absent.
+Implementation guidance: In policies/secretsmanager_resource_policy_least_privilege.rego, change both regex.match calls that use the 12-digit account-id pattern from normal quoted strings to Rego raw string literals: regex.match(`^[0-9]{12}$`, arn) and regex.match(`^[0-9]{12}$`, principal_account). This is formatting/style only; do not alter principal extraction behavior.
+Implementation guidance: In policies/secretsmanager_rotation_timeliness.rego, change the schedule_rate_days regex pattern passed to regex.find_all_string_submatch_n from a normal quoted string to a Rego raw string literal: `^rate\(([0-9]+) days?\)$`. Keep the same capture group, schedule_expression argument, and match count logic.
+Implementation guidance: In policies/secretsmanager_vendor_credential_policy_scope.rego, change both regex.match calls that use the 12-digit account-id pattern from normal quoted strings to Rego raw string literals: regex.match(`^[0-9]{12}$`, arn) and regex.match(`^[0-9]{12}$`, principal_account). This should be a style-only change with no policy behavior change.
