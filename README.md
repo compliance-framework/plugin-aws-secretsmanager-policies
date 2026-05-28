@@ -28,6 +28,7 @@ Policies consume documents with no `policy_inputs` field. Tunables are flattened
     "last_accessed_date": "2026-05-26T14:22:11Z",
     "deleted_date": "",
     "recovery_window_days": 0,
+    "force_delete_without_recovery": false,
     "owning_service": "",
     "replication_status": [{"region": "us-west-2", "status": "InSync", "last_accessed_date": "...", "status_message": ""}],
     "resource_policy": {"hash": "sha256:...", "document": {}, "principals": []},
@@ -41,6 +42,7 @@ Policies consume documents with no `policy_inputs` field. Tunables are flattened
 ```
 
 `config.kms_key_id == "aws/secretsmanager"` is the sentinel for the AWS-managed default Secrets Manager KMS key.
+`config.force_delete_without_recovery` is true only when matched `DeleteSecret` evidence proves `ForceDeleteWithoutRecovery`; `config.recovery_window_days` of `0` or `null` can mean the recovery-window evidence is unknown.
 
 ## Applicability
 

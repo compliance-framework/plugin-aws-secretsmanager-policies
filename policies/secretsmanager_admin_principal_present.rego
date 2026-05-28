@@ -22,7 +22,6 @@ risk_templates := [{
 
 config := object.get(input, "config", {})
 resource := object.get(input, "resource", {})
-account := object.get(input, "account", {})
 resource_type := object.get(resource, "type", "")
 secret_arn := object.get(config, "secret_arn", object.get(resource, "arn", "unknown"))
 owning_service := object.get(config, "owning_service", "")
@@ -41,43 +40,21 @@ skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); adminis
 }
 
 principals := object.get(object.get(config, "resource_policy", {}), "principals", [])
-account_id := object.get(account, "account_id", "")
-
-principal_is_wildcard(principal_entry) if {
-	principal := object.get(principal_entry, "principal", "")
-	principal == "*"
-}
-
-principal_is_wildcard(principal_entry) if {
-	principal := object.get(principal_entry, "principal", {})
-	is_object(principal)
-	object.get(principal, "AWS", "") == "*"
-}
-
-principal_arn(principal_entry) := arn if {
-	principal := object.get(principal_entry, "principal", "")
-	is_string(principal)
-	arn := principal
-}
-
-principal_arn(principal_entry) := arn if {
-	principal := object.get(principal_entry, "principal", {})
-	is_object(principal)
-	aws := object.get(principal, "AWS", "")
-	is_string(aws)
-	arn := aws
-}
-
-principal_account_id(principal_entry) := principal_account if {
-	arn := principal_arn(principal_entry)
-	parts := split(arn, ":")
-	count(parts) > 4
-	principal_account := parts[4]
-	regex.match("^[0-9]{12}$", principal_account)
-}
 
 allow_effect(principal_entry) if {
 	lower(object.get(principal_entry, "effect", "")) == "allow"
+}
+
+action_list(principal_entry) := actions if {
+	raw := object.get(principal_entry, "action", [])
+	is_array(raw)
+	actions := raw
+}
+
+action_list(principal_entry) := [raw] if {
+	raw := object.get(principal_entry, "action", "")
+	is_string(raw)
+	raw != ""
 }
 
 resource_policy_present := object.get(config, "resource_policy_present", false)
@@ -86,7 +63,7 @@ admin_actions_normalized := {upper(a) | a := data.admin_action_set[_]}
 admin_principal_present if {
 	principal := principals[_]
 	allow_effect(principal)
-	actions := object.get(principal, "action", [])
+	actions := action_list(principal)
 	action := actions[_]
 	admin_actions_normalized[upper(action)]
 }

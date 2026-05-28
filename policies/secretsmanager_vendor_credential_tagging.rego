@@ -10,13 +10,12 @@ package compliance_framework.secretsmanager_vendor_credential_tagging
 #     - ctrl-cc9-2-007
 
 risk_templates := [{
-	"name": "Secrets Manager resource policy grants excessive access",
-	"title": "Broad Resource Policies Can Expose Secret Values or Administration",
-	"statement": "Wildcard, undocumented, or over-privileged principals in a secret resource policy can grant access outside the intended trust boundary.",
+	"name": "Vendor credential lacks identification tags",
+	"title": "Undocumented Vendor Credential Ownership or Scope",
+	"statement": "Missing VendorId or IntegrationType tags prevent vendor credential governance and review.",
 	"likelihood_hint": "medium",
-	"impact_hint": "high",
-	"threat_refs": [{"system": "https://cwe.mitre.org", "external_id": "CWE-732", "title": "Incorrect Permission Assignment for Critical Resource", "url": "https://cwe.mitre.org/data/definitions/732.html"}],
-	"remediation": {"title": "Constrain the resource policy", "description": "Replace wildcard principals, reduce actions, and document required partner access.", "tasks": [{"title": "Remove wildcard principals"}, {"title": "Record approved principals"}]},
+	"impact_hint": "medium",
+	"remediation": {"title": "Restore vendor credential tags", "description": "Identify the vendor integration and tag the secret for vendor credential governance.", "tasks": [{"title": "Tag the secret with VendorId"}, {"title": "Set IntegrationType=vendor"}]},
 }]
 
 config := object.get(input, "config", {})

@@ -97,6 +97,18 @@ allow_effect(principal_entry) if {
 	lower(object.get(principal_entry, "effect", "")) == "allow"
 }
 
+action_list(principal_entry) := actions if {
+	raw := object.get(principal_entry, "action", [])
+	is_array(raw)
+	actions := raw
+}
+
+action_list(principal_entry) := [raw] if {
+	raw := object.get(principal_entry, "action", "")
+	is_string(raw)
+	raw != ""
+}
+
 principal_account_id(principal_entry) := principal_account if {
 	arn := principal_arn(principal_entry)
 	regex.match("^[0-9]{12}$", arn)
@@ -132,7 +144,7 @@ violation[{"id": "vendor_principal_excess_actions"}] if {
 	resource_policy_present
 	principal := principals[_]
 	allow_effect(principal)
-	actions := object.get(principal, "action", [])
+	actions := action_list(principal)
 	action := actions[_]
 	not allowed_vendor_actions_normalized[upper(action)]
 }

@@ -64,6 +64,12 @@ test_unattributable_fails if {
 	policy.violation[{"id": "admin_event_unattributable"}] with input as inp with data.require_admin_audit_events as true
 }
 
+test_missing_timestamp_fails if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events/0/event_time", "value": ""}])
+	policy.violation[{"id": "admin_event_missing_timestamp"}] with input as inp with data.require_admin_audit_events as true
+	not policy.violation[{"id": "admin_events_missing"}] with input as inp with data.require_admin_audit_events as true
+}
+
 test_stale_fails if policy.violation[{"id": "admin_event_stale"}] with input as base_secret with data.require_admin_audit_events as true with time.now_ns as 1790812800000000000
 
 test_non_secret_record_skipped if {

@@ -61,6 +61,11 @@ test_wildcard if {
 
 test_excess_actions if policy.violation[{"id": "vendor_principal_excess_actions"}] with input as base_secret
 
+test_scalar_excess_action if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": "secretsmanager:DeleteSecret"}])
+	policy.violation[{"id": "vendor_principal_excess_actions"}] with input as inp
+}
+
 test_cross_account if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "arn:aws:iam::999999999999:role/vendor"}, {"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": ["secretsmanager:GetSecretValue"]}])
 	policy.violation[{"id": "vendor_principal_cross_account_undocumented"}] with input as inp

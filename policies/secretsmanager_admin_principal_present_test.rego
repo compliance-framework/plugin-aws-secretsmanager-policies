@@ -51,6 +51,11 @@ base_secret := {
 
 test_pass if count(policy.violation) == 0 with input as base_secret
 
+test_scalar_admin_action_passes if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": "secretsmanager:DeleteSecret"}])
+	count(policy.violation) == 0 with input as inp
+}
+
 test_missing_fails if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": ["secretsmanager:GetSecretValue"]}])
 	policy.violation[{"id": "admin_principal_missing"}] with input as inp

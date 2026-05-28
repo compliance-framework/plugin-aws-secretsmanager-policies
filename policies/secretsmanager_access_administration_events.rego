@@ -61,6 +61,13 @@ violation[{"id": "admin_event_unattributable"}] if {
 	object.get(event, "user_identity_arn", "") == ""
 }
 
+violation[{"id": "admin_event_missing_timestamp"}] if {
+	resource_type == "secret"
+	data.require_admin_audit_events
+	count(matching_admin_events) > 0
+	count(matching_admin_event_times) == 0
+}
+
 violation[{"id": "admin_event_stale"}] if {
 	resource_type == "secret"
 	data.require_admin_audit_events

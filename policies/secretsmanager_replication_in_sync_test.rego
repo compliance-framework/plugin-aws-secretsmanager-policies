@@ -62,6 +62,12 @@ test_unknown_skips if {
 	policy.skip_reason with input as inp
 }
 
+test_unknown_status_short_circuits_failed_replica if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/replication_status", "value": [{"region": "us-west-2", "status": "Failed"}, {"region": "eu-west-1", "status": "PausedByAWS"}]}])
+	not policy.violation[{"id": "replication_failed"}] with input as inp
+	policy.skip_reason with input as inp
+}
+
 test_non_secret_record_skipped if {
 	count(policy.violation) == 0 with input as {"resource": {"type": "loadbalancer"}}
 }

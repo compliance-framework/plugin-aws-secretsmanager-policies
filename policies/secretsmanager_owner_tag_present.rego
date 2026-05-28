@@ -11,13 +11,13 @@ package compliance_framework.secretsmanager_owner_tag_present
 #     - ctrl-cc6-2-024
 
 risk_templates := [{
-	"name": "Secrets Manager resource policy grants excessive access",
-	"title": "Broad Resource Policies Can Expose Secret Values or Administration",
-	"statement": "Wildcard, undocumented, or over-privileged principals in a secret resource policy can grant access outside the intended trust boundary.",
+	"name": "Secrets Manager secret is missing ownership tagging",
+	"title": "Missing Ownership Metadata Reduces Secret Accountability",
+	"statement": "Missing owner tags reduce accountability for secret review, rotation, and access decisions.",
 	"likelihood_hint": "medium",
-	"impact_hint": "high",
-	"threat_refs": [{"system": "https://cwe.mitre.org", "external_id": "CWE-732", "title": "Incorrect Permission Assignment for Critical Resource", "url": "https://cwe.mitre.org/data/definitions/732.html"}],
-	"remediation": {"title": "Constrain the resource policy", "description": "Replace wildcard principals, reduce actions, and document required partner access.", "tasks": [{"title": "Remove wildcard principals"}, {"title": "Record approved principals"}]},
+	"impact_hint": "medium",
+	"threat_refs": [{"system": "https://cwe.mitre.org", "external_id": "CWE-1059", "title": "Insufficient Technical Documentation", "url": "https://cwe.mitre.org/data/definitions/1059.html"}],
+	"remediation": {"title": "Restore ownership metadata", "description": "Tag the secret with a responsible owner and reconcile it with ownership records.", "tasks": [{"title": "Add an Owner or Team tag"}, {"title": "Reconcile with the resource owner registry"}]},
 }]
 
 config := object.get(input, "config", {})
@@ -36,30 +36,6 @@ skip_reason := sprintf("Resource type %q is not a secret; this policy only appli
 }
 
 tags := object.get(input, "tags", {})
-data_classification := lower(object.get(tags, "DataClassification", ""))
-integration_type := lower(object.get(tags, "IntegrationType", ""))
-vendor_id := object.get(tags, "VendorId", "")
-privacy_scope := lower(object.get(tags, "PrivacyScope", ""))
-
-is_vendor_secret if {
-	integration_type == "vendor"
-}
-
-is_vendor_secret if {
-	vendor_id != ""
-}
-
-confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]}
-
-is_confidential if {
-	confidential_classification_values[data_classification]
-}
-
-privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]}
-
-is_pi_secret if {
-	privacy_scope_values[privacy_scope]
-}
 
 skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); ownership is AWS-managed.", [secret_arn, owning_service]) if {
 	resource_type == "secret"
