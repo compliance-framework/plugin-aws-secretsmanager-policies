@@ -1,0 +1,2136 @@
+lisa-addressed:
+---
+Comment (.github/workflows/build-and-upload.yml:6):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Avoid workflow-level write permissions in reusable workflow.**
+
+Granting `contents: write` and `packages: write` at workflow scope broadens token power for all jobs by default. Keep elevated permissions only at the specific job that needs them.
+
+<details>
+<summary>🔧 Proposed fix</summary>
+
+```diff
+-permissions:
+-  contents: write
+-  packages: write
++permissions: {}
+```
+</details>
+
+<details>
+<summary>🧰 Tools</summary>
+
+<details>
+<summary>🪛 zizmor (1.25.2)</summary>
+
+[error] 5-5: overly broad permissions (excessive-permissions): contents: write is overly broad at the workflow level
+
+(excessive-permissions)
+
+---
+
+[error] 6-6: overly broad permissions (excessive-permissions): packages: write is overly broad at the workflow level
+
+(excessive-permissions)
+
+---
+
+[warning] 5-5: permissions without explanatory comments (undocumented-permissions): needs an explanatory comment
+
+(undocumented-permissions)
+
+</details>
+
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In @.github/workflows/build-and-upload.yml around lines 4 - 6, The workflow
+currently sets broad workflow-level permissions by using the permissions keys
+"contents: write" and "packages: write"; remove or downgrade these keys at the
+top-level (give only the minimum needed, e.g., "contents: read") and instead
+grant "contents: write" and "packages: write" under the specific job that
+performs publishing/uploading (add a permissions block inside that job, e.g.,
+the upload/publish job) so elevated token scopes are limited to the job that
+actually needs them.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (.github/workflows/build-and-upload.yml:41):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Sanitize `github.ref_name` before using it as an image tag.**
+
+`github.ref_name` can contain `/` (for example, `lisa/feat/policy-implementation`), which breaks OCI tag formatting and can fail `upload versioned bundle`.
+
+<details>
+<summary>🔧 Proposed fix</summary>
+
+```diff
+       - name: upload versioned bundle
+         env:
+           GH_REPOSITORY: ${{ github.repository }}
+           GH_REF_NAME: ${{ github.ref_name }}
+-        run: gooci upload-single dist/bundle.tar.gz "ghcr.io/$GH_REPOSITORY:$GH_REF_NAME"
++        run: |
++          TAG="${GH_REF_NAME//\//-}"
++          gooci upload-single dist/bundle.tar.gz "ghcr.io/$GH_REPOSITORY:$TAG"
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+      - name: upload versioned bundle
+        env:
+          GH_REPOSITORY: ${{ github.repository }}
+          GH_REF_NAME: ${{ github.ref_name }}
+        run: |
+          TAG="${GH_REF_NAME//\//-}"
+          gooci upload-single dist/bundle.tar.gz "ghcr.io/$GH_REPOSITORY:$TAG"
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In @.github/workflows/build-and-upload.yml around lines 37 - 41, The workflow
+step "upload versioned bundle" uses GH_REF_NAME directly in the gooci
+upload-single tag which can contain slashes and break OCI tags; update the step
+to sanitize GH_REF_NAME (e.g., replace '/' with '-' or otherwise strip illegal
+characters) into a safe TAG env var before calling gooci upload-single so the
+image tag "ghcr.io/$GH_REPOSITORY:$TAG" is always valid; modify the step that
+sets GH_REF_NAME and the run call to reference the sanitized TAG variable
+instead of GH_REF_NAME.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (.github/workflows/release.yml:8):
+_🧹 Nitpick_ | _🔵 Trivial_ | _⚡ Quick win_
+
+<details>
+<summary>🧩 Analysis chain</summary>
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+echo "== .github/workflows/release.yml =="
+sed -n '1,200p' .github/workflows/release.yml
+
+echo
+echo "== .github/workflows/build-and-upload.yml =="
+sed -n '1,260p' .github/workflows/build-and-upload.yml
+
+echo
+echo "== Permission-relevant usage in workflows =="
+rg -n -C2 'permissions:|gh release|upload-release-asset|docker/login-action|ghcr.io|npm publish|twine upload|packages:' .github/workflows
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 5211
+
+---
+
+🌐 Web query:
+
+`GitHub Actions reusable workflow_call permissions inheritance caller vs called workflow GITHUB_TOKEN permissions override precedence`
+
+💡 Result:
+
+In GitHub Actions, the `GITHUB_TOKEN` permissions for a reusable workflow are governed by the permissions defined in the caller workflow's job [1][2]. The following rules define the precedence and inheritance behavior: 1. Inheritance and Defaulting: If you do not explicitly define `permissions` at the `jobs.<job_id>.permissions` level in the caller workflow, the called reusable workflow will receive the default `GITHUB_TOKEN` permissions [1][2]. 2. Downgrade Restriction (Maximum Permission Ceiling): The `GITHUB_TOKEN` permissions passed from a caller workflow to a called workflow act as a maximum ceiling [1][2]. The called workflow can only be as permissive as, or more restrictive than, the caller's defined permissions [1][2]. It is impossible to elevate permissions in a called workflow beyond what the caller has granted [1][2]. 3. Nested Workflows: This "ceiling" rule applies to chains of nested reusable workflows (e.g., A calls B, and B calls C) [1][2]. Each subsequent workflow in the chain must maintain or reduce the permissions of its predecessor; it cannot elevate them [3][4]. 4. Contextual Association: While the `GITHUB_TOKEN` is passed to the called workflow, the `github` context remains associated with the caller workflow [1][2]. In summary, the caller workflow holds authority over the permission set [1][5]. To ensure security, it is best practice to define the minimum required permissions at the job level in the caller workflow, which effectively limits the potential impact if the called workflow is compromised [6][5].
+
+Citations:
+
+- 1: https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations
+- 2: https://github.com/github/docs/blob/main/content/actions/reference/workflows-and-actions/reusing-workflow-configurations.md
+- 3: https://github.com/github/docs/blob/main/content/actions/how-tos/reuse-automations/reuse-workflows.md
+- 4: https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows
+- 5: https://www.kenmuse.com/blog/github-actions-workflow-permissions/
+- 6: https://dev.to/vasiliy0/run-a-no-token-cicd-preflight-before-your-next-release-2l7l
+
+---
+
+</details>
+
+**Tighten `GITHUB_TOKEN` permissions to what the workflow actually needs (keep `contents`+`packages`).**
+
+`packages: write` is required: `.github/workflows/build-and-upload.yml` logs into `ghcr.io` with `${{ secrets.GITHUB_TOKEN }}` and uploads images via `gooci upload-single`. `contents: write` is also required for `softprops/action-gh-release`. Since `.github/workflows/release.yml` has only this single reusable-workflow job, the current scopes aren’t excessive; the main improvement is moving the `permissions` block to `jobs.build-and-upload.permissions` for clearer least-privilege boundaries.
+
+<details>
+<summary>🧰 Tools</summary>
+
+<details>
+<summary>🪛 zizmor (1.25.2)</summary>
+
+[error] 7-7: overly broad permissions (excessive-permissions): contents: write is overly broad at the workflow level
+
+(excessive-permissions)
+
+---
+
+[error] 8-8: overly broad permissions (excessive-permissions): packages: write is overly broad at the workflow level
+
+(excessive-permissions)
+
+---
+
+[warning] 7-7: permissions without explanatory comments (undocumented-permissions): needs an explanatory comment
+
+(undocumented-permissions)
+
+</details>
+
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In @.github/workflows/release.yml around lines 6 - 8, Move the top-level
+permissions block into the reusable job scope and retain only the needed scopes:
+keep contents: write and packages: write under
+jobs.build-and-upload.permissions; specifically, remove the current top-level
+permissions and add a permissions block named jobs.build-and-upload.permissions
+with contents: write and packages: write so the GITHUB_TOKEN is least-privileged
+for the build-and-upload job that runs ghcr login and
+softprops/action-gh-release.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_access_administration_events.rego:43):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+<details>
+<summary>🧩 Analysis chain</summary>
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+# Inspect fixtures/docs to confirm whether admin CloudTrail events are pre-scoped
+# to a single secret and which field identifies the target secret.
+rg -n -C2 'cloudtrail_events|admin_event_names|secret_arn|requestParameters|resources|event_name' policies README.md
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 50411
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+# Locate the policy + any tests for it
+fd -a "secretsmanager_access_administration_events" .
+
+# Show the relevant policy content around the referenced lines
+FILE="policies/secretsmanager_access_administration_events.rego"
+if [ -f "$FILE" ]; then
+  echo "---- $FILE ----"
+  wc -l "$FILE"
+  # show around lines 1-120 but limited
+  nl -ba "$FILE" | sed -n '1,140p'
+else
+  echo "Missing $FILE"
+fi
+
+# Find test files referencing this policy
+rg -n "secretsmanager_access_administration_events" policies || true
+
+# If there is a test file, show it
+for t in $(fd -a -i "*access_administration_events*test*.rego" policies || true); do
+  echo "---- $t ----"
+  wc -l "$t"
+  nl -ba "$t" | sed -n '1,220p'
+done
+
+# Search within the policy file for secret-id correlation fields
+rg -n "requestParameters|resources|secret|secretId|secretArn|responseElements|eventSource|eventName|event_name|event_time|admin_event_missing_timestamp" policies/secretsmanager_access_administration_events.rego || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 449
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+# Locate the policy + any tests for it
+fd -a "secretsmanager_access_administration_events" .
+
+# Show the relevant policy content around the referenced lines
+FILE="policies/secretsmanager_access_administration_events.rego"
+if [ -f "$FILE" ]; then
+  echo "---- $FILE ----"
+  wc -l "$FILE"
+  # show around lines 1-140 but limited
+  nl -ba "$FILE" | sed -n '1,160p'
+else
+  echo "Missing $FILE"
+fi
+
+# Find test files referencing this policy
+echo "---- Test references ----"
+rg -n "secretsmanager_access_administration_events" policies || true
+
+# If there is a test file, show it
+for t in $(fd -a -i "*access_administration_events*test*.rego" policies || true); do
+  echo "---- $t ----"
+  wc -l "$t"
+  nl -ba "$t" | sed -n '1,260p'
+done
+
+# Search within the policy file for secret-id correlation fields
+echo "---- Correlation field search ----"
+rg -n "requestParameters|resources|secret|secretId|secretArn|responseElements|event_source|eventSource|event_name|event_time|admin_event_missing_timestamp|object.get\\(event" policies/secretsmanager_access_administration_events.rego || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 449
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+fd -a "secretsmanager_access_administration_events" .
+
+FILE="policies/secretsmanager_access_administration_events.rego"
+if [ -f "$FILE" ]; then
+  echo "---- $FILE ----"
+  wc -l "$FILE"
+  nl -ba "$FILE" | sed -n '1,220p'
+else
+  echo "Missing $FILE"
+fi
+
+echo "---- Test references ----"
+rg -n "secretsmanager_access_administration_events" policies || true
+
+for t in $(fd -a -i "*access_administration_events*test*.rego" policies || true); do
+  echo "---- $t ----"
+  wc -l "$t"
+  nl -ba "$t" | sed -n '1,260p'
+done
+
+echo "---- Correlation field search ----"
+rg -n "requestParameters|resources|secretId|secretArn|responseElements|event_source|eventSource|admin_event_missing_timestamp|admin_event_names|matching_admin_events|object.get\\(event" policies/secretsmanager_access_administration_events.rego || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 449
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+fd -a "secretsmanager_access_administration_events" .
+
+FILE="policies/secretsmanager_access_administration_events.rego"
+if [ -f "$FILE" ]; then
+  echo "---- $FILE ----"
+  wc -l "$FILE"
+  nl -ba "$FILE" | sed -n '1,220p'
+else
+  echo "Missing $FILE"
+fi
+
+echo "---- Test references ----"
+rg -n "secretsmanager_access_administration_events" policies || true
+
+for t in $(fd -a -i "*access_administration_events*test*.rego" policies || true); do
+  echo "---- $t ----"
+  wc -l "$t"
+  nl -ba "$t" | sed -n '1,260p'
+done
+
+echo "---- Correlation field search ----"
+rg -n "requestParameters|resources|secretId|secretArn|responseElements|event_source|eventSource|admin_event_missing_timestamp|admin_event_names|matching_admin_events|object.get\\(event" policies/secretsmanager_access_administration_events.rego || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 449
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+fd -a "secretsmanager_access_administration_events" .
+
+FILE="policies/secretsmanager_access_administration_events.rego"
+if [ -f "$FILE" ]; then
+  echo "---- $FILE ----"
+  wc -l "$FILE"
+  nl -ba "$FILE" | sed -n '1,220p'
+else
+  echo "Missing $FILE"
+fi
+
+echo "---- Test references ----"
+rg -n "secretsmanager_access_administration_events" policies || true
+
+for t in $(fd -a -i "*access_administration_events*test*.rego" policies || true); do
+  echo "---- $t ----"
+  wc -l "$t"
+  nl -ba "$t" | sed -n '1,260p'
+done
+
+echo "---- Correlation field search ----"
+rg -n "requestParameters|resources|secretId|secretArn|responseElements|event_source|eventSource|admin_event_missing_timestamp|admin_event_names|matching_admin_events|object.get\\(event" policies/secretsmanager_access_administration_events.rego || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 449
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+POL="policies/secretsmanager_access_administration_events.rego"
+TEST="policies/secretsmanager_access_administration_events_test.rego"
+
+echo "---- $POL (lines 1-90) ----"
+awk 'NR<=90{printf "%4d:%s\n", NR, $0}' "$POL"
+
+echo "---- $POL (lines 30-60) ----"
+awk 'NR>=30 && NR<=60{printf "%4d:%s\n", NR, $0}' "$POL"
+
+echo "---- $POL (lines 60-90) ----"
+awk 'NR>=60 && NR<=90{printf "%4d:%s\n", NR, $0}' "$POL"
+
+echo "---- $TEST (all) ----"
+wc -l "$TEST"
+awk '{printf "%4d:%s\n", NR, $0}' "$TEST"
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 9616
+
+---
+
+</details>
+
+**Match CloudTrail admin events to `secret_arn` (not just `event_name`).**
+
+`policies/secretsmanager_access_administration_events.rego` builds `matching_admin_events` solely from `event_name` (lines 41-43); the subsequent “missing/unattributable/missing-timestamp/stale” violations all depend on this unscoped set, so admin events for other secrets in `input.dynamic.cloudtrail_events` can incorrectly drive findings for the current `secret_arn`.
+
+```rego
+admin_event_names := {name | name := data.admin_event_names[_]}
+matching_admin_events := [event | event := cloudtrail_events[_]; admin_event_names[object.get(event, "event_name", "")]]
+matching_admin_event_times := [time.parse_rfc3339_ns(object.get(event, "event_time", "")) | event := matching_admin_events[_]; object.get(event, "event_time", "") != ""]
+```
+
+`policies/secretsmanager_access_administration_events_test.rego` also only supplies `event_name`, `event_time`, and `user_identity_arn` in `dynamic.cloudtrail_events`, so event-to-secret correlation is not covered.
+
+Update `matching_admin_events` to filter using the collector-provided secret identifier in each CloudTrail event (whatever field contains the target secret ARN/ID in this input contract) and add a test where a matching `event_name` occurs for a different secret and must not satisfy `matching_admin_events` (and therefore must not trigger stale/unattributable/missing cases for the current `secret_arn`).
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_access_administration_events.rego` around lines 41 -
+43, The current matching_admin_events comprehension only filters CloudTrail
+events by event_name (admin_event_names) and thus can match events for other
+secrets; update the comprehension (matching_admin_events) to also require that
+each event’s secret identifier field (the collector-provided ARN/ID inside
+cloudtrail_events, e.g., object.get(event, "<secret_field>", "")) equals the
+current secret_arn being evaluated so events are scoped per-secret, and adjust
+matching_admin_event_times to operate over that filtered list; also add a unit
+test in policies/secretsmanager_access_administration_events_test.rego that
+includes two cloudtrail_events with the same admin event_name but different
+secret identifiers and assert only the event with the current secret_arn
+contributes to matches (the other must not trigger missing/unattributable/stale
+violations).
+```
+
+</details>
+
+<!-- fingerprinting:phantom:medusa:grasshopper -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_admin_principal_present.rego:21):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Align `risk_templates` with `admin_principal_missing` semantics.**
+
+The current template describes over-permissive policies, but this rule fires when an administrative principal is missing. Dashboard guidance will be misleading.
+
+<details>
+<summary>🔧 Proposed fix</summary>
+
+```diff
+ risk_templates := [{
+-	"name": "Secrets Manager resource policy grants excessive access",
+-	"title": "Broad Resource Policies Can Expose Secret Values or Administration",
+-	"statement": "Wildcard, undocumented, or over-privileged principals in a secret resource policy can grant access outside the intended trust boundary.",
++	"name": "Secrets Manager resource policy lacks an administrative principal",
++	"title": "Missing Administrative Principal Weakens Secret Governance",
++	"statement": "Without an approved administrative principal, secret lifecycle and incident-response operations can be blocked or unmanaged.",
+ 	"likelihood_hint": "medium",
+ 	"impact_hint": "high",
+-	"threat_refs": [{"system": "https://cwe.mitre.org", "external_id": "CWE-732", "title": "Incorrect Permission Assignment for Critical Resource", "url": "https://cwe.mitre.org/data/definitions/732.html"}],
+-	"remediation": {"title": "Constrain the resource policy", "description": "Replace wildcard principals, reduce actions, and document required partner access.", "tasks": [{"title": "Remove wildcard principals"}, {"title": "Record approved principals"}]},
++	"threat_refs": [{"system": "https://cwe.mitre.org", "external_id": "CWE-284", "title": "Improper Access Control", "url": "https://cwe.mitre.org/data/definitions/284.html"}],
++	"remediation": {"title": "Declare an approved administrative principal", "description": "Add at least one approved principal with required administrative actions in an Allow statement.", "tasks": [{"title": "Add approved admin principal ARN"}, {"title": "Grant required admin action set"}]},
+ }]
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+risk_templates := [{
+	"name": "Secrets Manager resource policy lacks an administrative principal",
+	"title": "Missing Administrative Principal Weakens Secret Governance",
+	"statement": "Without an approved administrative principal, secret lifecycle and incident-response operations can be blocked or unmanaged.",
+	"likelihood_hint": "medium",
+	"impact_hint": "high",
+	"threat_refs": [{"system": "https://cwe.mitre.org", "external_id": "CWE-284", "title": "Improper Access Control", "url": "https://cwe.mitre.org/data/definitions/284.html"}],
+	"remediation": {"title": "Declare an approved administrative principal", "description": "Add at least one approved principal with required administrative actions in an Allow statement.", "tasks": [{"title": "Add approved admin principal ARN"}, {"title": "Grant required admin action set"}]},
+}]
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_admin_principal_present.rego` around lines 13 - 21,
+The risk_templates entry currently describes over-permissive policies but this
+rule is about a missing administrative principal (referenced by the rule
+admin_principal_missing), so update the risk_templates object (symbol:
+risk_templates) to reflect “missing admin principal” semantics: change "name"
+and "title" to indicate a missing/absent admin principal, update "statement" to
+explain that no principal has full administrative rights on the secret resource,
+adjust "likelihood_hint"/"impact_hint" to appropriate values, replace the
+"remediation" tasks to steps for adding or documenting an admin principal (e.g.,
+"Add an administrative principal", "Document required administrative access"),
+and ensure threat_refs and description align with the risk of lack of
+administrative oversight rather than over-permissioned principals.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_confidential_disposal_record.rego:75):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+<details>
+<summary>🧩 Analysis chain</summary>
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+# Inspect fixtures/docs to see whether CloudTrail events are already scoped per secret
+# and which field identifies the target secret for DeleteSecret events.
+rg -n -C2 'cloudtrail_events|DeleteSecret|secret_arn|secretId|requestParameters|resources' policies README.md
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 50411
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+rg -n "secretsmanager_confidential_disposal_record" -S .
+rg -n "DeleteSecret" policies/secretsmanager_confidential_disposal_record.rego policies/*disposal* policies/*confidential* -S || true
+
+# Show the relevant section around the delete_secret_events logic
+nl -ba policies/secretsmanager_confidential_disposal_record.rego | sed -n '55,110p'
+
+# Locate and inspect the policy test for this module (if present)
+fd -a "secretsmanager_confidential_disposal_record*test*.rego" . || true
+fd -a "*confidential*disposal*test*.rego" policies . || true
+rg -n "confidential_disposal_record" -S policies || true
+rg -n "\"event_name\"\\s*:\\s*\"DeleteSecret\"" -S policies || true
+
+# Print any test files likely referencing the confidential disposal record
+for f in $(fd -a "*confidential*disposal*test*.rego" policies . 2>/dev/null | head -n 20); do
+  echo "---- $f ----"
+  nl -ba "$f" | head -n 200
+done
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 5414
+
+---
+
+</details>
+
+**Correlate `DeleteSecret` events to the current `secret_arn` before counting them.**
+
+`delete_secret_events` in `policies/secretsmanager_confidential_disposal_record.rego` filters `input.dynamic.cloudtrail_events` only by `event_name == "DeleteSecret"`—no secret/resource identifier is used in the correlation. The module’s unit tests also populate `dynamic.cloudtrail_events` with only `event_name`, `event_time`, and `user_identity_arn` (no `secret_arn`/`secretId`/resource field). If `input.dynamic.cloudtrail_events` can contain DeleteSecret events for multiple secrets, findings for the wrong secret can be suppressed or triggered. Filter by the target secret identifier in the event schema (or document/enforce a resource-scoped input contract) and add a cross-secret test.
+
+<details>
+<summary>🧰 Tools</summary>
+
+<details>
+<summary>🪛 Regal (0.40.0)</summary>
+
+[error] 72-72: Superfluous `object.get` call
+
+(idiomatic)
+
+</details>
+
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_confidential_disposal_record.rego` around lines 69 -
+75, delete_secret_events is currently computed only by event_name and will count
+DeleteSecret events from any secret; update the filter to correlate each event
+to the current secret_arn (e.g. check event.requestParameters.secretId,
+event.resources[_].ARN, event.requestParameters.ARN or any resource identifier
+present) when building delete_secret_events so only events that reference
+secret_arn are included (use object.get(event, "...", "") and compare to
+secret_arn); update the unit tests to include a cross-secret case where
+cloudtrail_events contains DeleteSecret events for multiple secrets to verify
+the filter works.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:medusa:grasshopper -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_confidential_policy_scope.rego:94):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+<details>
+<summary>🧩 Analysis chain</summary>
+
+🌐 Web query:
+
+`For AWS IAM/Secrets Manager resource policies, is "Principal": {"AWS": [...]} a valid representation, and are arrays commonly used for multiple principals?`
+
+💡 Result:
+
+Yes, "Principal": {"AWS": [...]} is a valid and commonly used representation in AWS IAM and Secrets Manager resource-based policies [1][2]. Using an array for the value associated with a principal type (such as "AWS") is the standard, efficient way to specify multiple principals in a single statement [1]. When you include multiple entries in the array, AWS treats them as a logical OR, granting permissions to any of the listed principals [1]. For example, to grant access to multiple IAM users or roles, you can format the policy as follows: "Principal": { "AWS": [ "arn:aws:iam::111122223333:user/Alice", "arn:aws:iam::444455556666:role/BobRole" ] } This is functionally equivalent to creating multiple separate policy statements, but using an array is generally preferred because it creates a more concise and readable policy document [3].
+
+Citations:
+
+- 1: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+- 2: https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_resource-policies.html
+- 3: https://stackoverflow.com/questions/73970794/correct-way-to-write-multiple-principal-aws-in-aws-iam-role-trustentity-relation
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+# Show the relevant portion of the file
+ls -la policies | cat
+sed -n '1,200p' policies/secretsmanager_confidential_policy_scope.rego | sed -n '60,170p' | cat -n
+
+# Locate all definitions/usages of the functions referenced in the review comment
+rg -n "principal_(is_wildcard|arn)\b|principal_values\b|principal_entry" policies/secretsmanager_confidential_policy_scope.rego
+
+# Dump only the sections around the other mentioned line ranges for context
+sed -n '90,130p' policies/secretsmanager_confidential_policy_scope.rego | cat -n
+sed -n '120,170p' policies/secretsmanager_confidential_policy_scope.rego | cat -n
+sed -n '130,170p' policies/secretsmanager_confidential_policy_scope.rego | cat -n
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 10840
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+FILE="policies/secretsmanager_confidential_policy_scope.rego"
+TEST="policies/secretsmanager_confidential_policy_scope_test.rego"
+
+echo "=== secretsmanager_confidential_policy_scope.rego (1-220) ==="
+sed -n '1,220p' "$FILE" | cat -n
+
+echo "=== secretsmanager_confidential_policy_scope_test.rego ==="
+sed -n '1,260p' "$TEST" | cat -n
+
+echo "=== Search for principals construction / normalization ==="
+rg -n "principals\s*:?=" -S policies | head -n 50
+rg -n "\"resource_policy\"|resource_policy\.principals|principals\"\\s*:" -S policies | head -n 200
+rg -n "Principal|principal\\s*:=|Principal\\.AWS|\"AWS\"\\s*:" -S policies/secretsmanager_confidential_policy_scope*.rego
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 14540
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+rg -n "\"AWS\"\s*:\s*\[" policies policies/data.json
+rg -n "\"principal\"\s*:\s*\{" policies
+rg -n "is_array\(" policies/secretsmanager_confidential_policy_scope*.rego policies | head -n 200
+rg -n "\"principal\"\s*:\s*\[" policies
+rg -n "AWS.*\\[|\\[.*AWS" policies -S
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 81
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+# Broad searches for principal object forms and array usage
+rg -n "\"AWS\"\s*:" policies | head -n 200
+rg -n "\"AWS\"\s*:\s*\"|\bAWS\b\s*:\s*\"|\"AWS\"\s*:\s*\"\\*\"" policies | head -n 200
+rg -n "\"AWS\"\s*:\s*\[" policies | head -n 200
+rg -n "\"principal\"\s*:\s*\{" policies | head -n 200
+rg -n "principals\"\s*:\s*\[" policies | head -n 200
+
+# Search for any policy logic that already handles arrays for principal values
+rg -n "is_array\(|_\\]|\\[_\\]" policies | head -n 200
+
+# Show the shared data.json shape for cleared/principal-related lists
+echo "=== policies/data.json (relevant excerpts) ==="
+python3 - <<'PY'
+import json
+p="policies/data.json"
+with open(p) as f: d=json.load(f)
+# Print keys likely related to principals
+for k in sorted(d.keys()):
+    if "principal" in k.lower() or "cleared" in k.lower() or "allowed_cross_account" in k.lower():
+        print(k, "=", d[k])
+PY
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 81
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+# Inspect fixture data.json for principal structure examples
+echo "=== policies/data.json (first 220 lines) ==="
+sed -n '1,220p' policies/data.json | cat -n
+
+echo "=== Search for resource_policy/principal shapes in repo (non-fatal) ==="
+rg -n "\"resource_policy\"|\"principals\"" -S policies || true
+rg -n "\"AWS\"\s*:\s*\[" -S policies || true
+rg -n "\"principal\"\s*:\s*\{" -S policies || true
+rg -n "\"principal\"\\s*:\\s*\\[|\"AWS\"\\s*:\\s*\\[" -S . || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 4725
+
+---
+
+</details>
+
+**Support `Principal.AWS` arrays to prevent policy-scope bypass.**
+
+`policies/secretsmanager_confidential_policy_scope.rego` only handles `principal` as a string or `{ "AWS": "<string>" }`. If the resource policy uses `{ "AWS": [ ... ] }`, `principal_is_wildcard` / `principal_arn` won’t match any entry, so wildcard/cross-account/cleared-principal violations can be skipped (affects the logic using `principal_arn` / `principal_is_wildcard` in the mentioned ranges).
+
+<details>
+<summary>Proposed fix</summary>
+
+```diff
++principal_values(principal_entry)[v] if {
++  p := object.get(principal_entry, "principal", "")
++  is_string(p)
++  v := p
++}
++
++principal_values(principal_entry)[v] if {
++  p := object.get(principal_entry, "principal", {})
++  is_object(p)
++  aws := object.get(p, "AWS", "")
++  is_string(aws)
++  v := aws
++}
++
++principal_values(principal_entry)[v] if {
++  p := object.get(principal_entry, "principal", {})
++  is_object(p)
++  aws := object.get(p, "AWS", [])
++  is_array(aws)
++  v := aws[_]
++  is_string(v)
++}
+-
+-principal_is_wildcard(principal_entry) if {
+-  principal := object.get(principal_entry, "principal", {})
+-  is_object(principal)
+-  object.get(principal, "AWS", "") == "*"
+-}
++principal_is_wildcard(principal_entry) if {
++  v := principal_values(principal_entry)[_]
++  v == "*"
++}
+-
+-principal_arn(principal_entry) := arn if {
+-  principal := object.get(principal_entry, "principal", "")
+-  is_string(principal)
+-  arn := principal
+-}
+-
+-principal_arn(principal_entry) := arn if {
+-  principal := object.get(principal_entry, "principal", {})
+-  is_object(principal)
+-  aws := object.get(principal, "AWS", "")
+-  is_string(aws)
+-  arn := aws
+-}
++principal_arn(principal_entry) := arn if {
++  arn := principal_values(principal_entry)[_]
++}
+```
+</details>
+
+<details>
+<summary>🧰 Tools</summary>
+
+<details>
+<summary>🪛 Regal (0.40.0)</summary>
+
+[error] 79-79: Superfluous `object.get` call
+
+(idiomatic)
+
+</details>
+
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_confidential_policy_scope.rego` around lines 76 - 94,
+The current helper rules principal_is_wildcard and principal_arn only handle
+principal as a string or principal.AWS as a string, so principal.AWS arrays are
+ignored; update both rules to also detect when object.get(principal, "AWS") is
+an array (use is_array or is_array-like check) and then (1) treat
+principal_is_wildcard as true if the AWS array contains "*" (or any wildcard
+entry), and (2) extend principal_arn to yield each ARN from the AWS array (i.e.,
+iterate/return elements of the array as arn values) so downstream checks that
+use principal_arn/principal_is_wildcard will correctly handle array-form
+principals.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_confidential_rotation_required.rego:94):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Max confidential cadence can be bypassed when cadence is provided only via `schedule_expression`.**
+
+Line 92 requires `automatically_after_days != null`, so enabled rotation with only schedule-based cadence won’t trigger `rotation_cadence_too_long`.
+
+<details>
+<summary>Suggested fix</summary>
+
+```diff
+ rotation_enabled := object.get(config, "rotation_enabled", false)
+ rotation_rules := object.get(config, "rotation_rules", {})
+ automatically_after_days := object.get(rotation_rules, "automatically_after_days", null)
++schedule_expression := lower(trim_space(object.get(rotation_rules, "schedule_expression", "")))
++
++schedule_rate_days := days if {
++	matches := regex.find_all_string_submatch_n("^rate\\(([0-9]+) days?\\)$", schedule_expression, 1)
++	count(matches) == 1
++	days := to_number(matches[0][1])
++	days > 0
++}
++
++effective_rotation_days := automatically_after_days if {
++	automatically_after_days != null
++	automatically_after_days > 0
++}
++
++effective_rotation_days := schedule_rate_days if {
++	(automatically_after_days == null or automatically_after_days <= 0)
++	schedule_rate_days > 0
++}
+ ...
+ violation[{"id": "rotation_cadence_too_long"}] if {
+ 	resource_type == "secret"
+ 	is_confidential
+ 	not is_service_linked
+ 	rotation_enabled
+-	automatically_after_days != null
+-	automatically_after_days > data.max_confidential_rotation_days
++	effective_rotation_days > data.max_confidential_rotation_days
+ }
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+rotation_enabled := object.get(config, "rotation_enabled", false)
+rotation_rules := object.get(config, "rotation_rules", {})
+automatically_after_days := object.get(rotation_rules, "automatically_after_days", null)
+schedule_expression := lower(trim_space(object.get(rotation_rules, "schedule_expression", "")))
+
+schedule_rate_days := days if {
+	matches := regex.find_all_string_submatch_n("^rate\\(([0-9]+) days?\\)$", schedule_expression, 1)
+	count(matches) == 1
+	days := to_number(matches[0][1])
+	days > 0
+}
+
+effective_rotation_days := automatically_after_days if {
+	automatically_after_days != null
+	automatically_after_days > 0
+}
+
+effective_rotation_days := schedule_rate_days if {
+	(automatically_after_days == null or automatically_after_days <= 0)
+	schedule_rate_days > 0
+}
+
+title := sprintf("Validate confidential rotation requirements for %s", [secret_arn])
+description := sprintf("Secret %s rotation_enabled=%v automatically_after_days=%v.", [secret_arn, rotation_enabled, automatically_after_days])
+
+violation[{"id": "rotation_disabled"}] if {
+	resource_type == "secret"
+	is_confidential
+	not is_service_linked
+	not rotation_enabled
+}
+
+violation[{"id": "rotation_cadence_too_long"}] if {
+	resource_type == "secret"
+	is_confidential
+	not is_service_linked
+	rotation_enabled
+	effective_rotation_days > data.max_confidential_rotation_days
+}
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_confidential_rotation_required.rego` around lines 74
+- 94, The rule rotation_cadence_too_long currently only fires when
+automatically_after_days is set; update the condition so schedule-based cadence
+is also considered: in the policy that defines rotation_enabled, rotation_rules,
+automatically_after_days and emits violation with id
+"rotation_cadence_too_long", change the predicate to trigger when
+rotation_enabled is true AND either (automatically_after_days != null and
+automatically_after_days > data.max_confidential_rotation_days) OR
+(automatically_after_days == null and object.get(rotation_rules,
+"schedule_expression", "") != ""), i.e., detect presence of schedule_expression
+as a cadence that should be validated (or flagged) so schedule-only rotation
+cannot bypass the max cadence check.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_owner_tag_present_test.rego:61):
+_⚠️ Potential issue_ | _🟡 Minor_ | _⚡ Quick win_
+
+**`test_case_insensitive_key_passes` does not exercise Owner key casing.**
+
+This test currently swaps in `"team"` instead of an Owner-key case variant, so it can pass without validating the intended behavior.
+
+<details>
+<summary>Proposed fix</summary>
+
+```diff
+ test_case_insensitive_key_passes if {
+-	inp := json.patch(base_secret, [{"op": "replace", "path": "/tags", "value": {"team": "platform"}}])
++	inp := json.patch(base_secret, [{"op": "replace", "path": "/tags", "value": {"owner": "platform"}}])
+ 	count(policy.violation) == 0 with input as inp
+ }
+```
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_owner_tag_present_test.rego` around lines 59 - 61,
+The test test_case_insensitive_key_passes is using "team" instead of an
+Owner-key case variant so it doesn't validate case-insensitivity; update the
+json.patch in that test (which builds inp from base_secret) to set tags to an
+Owner key with mixed casing (e.g., "oWnEr": "platform" or "Owner": "platform")
+instead of "team" so the assertion count(policy.violation) == 0 with input as
+inp actually verifies the policy accepts Owner keys regardless of case; keep the
+rest of the test (base_secret, inp, and count(policy.violation) check)
+unchanged.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_privacy_subprocessor_posture.rego:66):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Gate this policy on vendor integrations, not all PI secrets.**
+
+`skip_reason` only excludes non-PI secrets, so internal PI secrets still hit `vendor_id_tag_missing`, undocumented-role, and excess-action checks later in the file. `is_vendor_secret` is defined but never used in the scope guards.
+
+<details>
+<summary>Suggested direction</summary>
+
+```diff
++in_scope if {
++  resource_type == "secret"
++  is_pi_secret
++  is_vendor_secret
++}
++
+ skip_reason := sprintf("Secret %s is not privacy-scoped; this policy applies only to configured PrivacyScope values.", [secret_arn]) if {
+ 	resource_type == "secret"
+ 	not is_pi_secret
+ }
++
++skip_reason := sprintf("Secret %s is not a vendor integration; this policy only applies to PI subprocessors.", [secret_arn]) if {
++	resource_type == "secret"
++	is_pi_secret
++	not is_vendor_secret
++}
+```
+
+Then replace the repeated `resource_type == "secret"` / `is_pi_secret` guards below with `in_scope`.
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+in_scope if {
+	resource_type == "secret"
+	is_pi_secret
+	is_vendor_secret
+}
+
+skip_reason := sprintf("Secret %s is not privacy-scoped; this policy applies only to configured PrivacyScope values.", [secret_arn]) if {
+	resource_type == "secret"
+	not is_pi_secret
+}
+
+skip_reason := sprintf("Secret %s is not a vendor integration; this policy only applies to PI subprocessors.", [secret_arn]) if {
+	resource_type == "secret"
+	is_pi_secret
+	not is_vendor_secret
+}
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_privacy_subprocessor_posture.rego` around lines 63 -
+66, The policy currently only excludes non-PI secrets via skip_reason so
+internal PI secrets still run vendor-specific checks; use the existing
+is_vendor_secret guard to scope this policy to vendor-managed PI secrets
+instead. Create an in_scope boolean (or update skip_reason) that combines
+resource_type == "secret", is_pi_secret, and is_vendor_secret, then replace the
+repeated resource_type == "secret" / is_pi_secret guards in subsequent rules
+(e.g., the vendor_id_tag_missing, undocumented-role, and excess-action checks)
+with a single in_scope guard so only vendor PI secrets are evaluated.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:medusa:grasshopper -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_privacy_transfer_governance.rego:94):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+<details>
+<summary>🧩 Analysis chain</summary>
+
+🌐 Web query:
+
+`In AWS IAM/resource policies, can the `Principal` field (specifically `Principal.AWS`) be an array of principals, not just a single string?`
+
+💡 Result:
+
+Yes, the Principal field (including Principal.AWS) can be an array of principals in AWS IAM resource-based policies and trust policies [1][2]. When specifying multiple principals, you use an array (square brackets []) and comma-delimit each entry [1]. This is functionally equivalent to specifying multiple individual statements in a policy, as it acts as a logical OR—granting permissions to any of the principals listed in the array [1]. Example of using an array for multiple AWS principals: { "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Principal": { "AWS": [ "arn:aws:iam::123456789012:root", "arn:aws:iam::555555555555:user/example-user" ] }, "Action": "sts:AssumeRole" } ] } Using an array is often preferred as it is more concise than creating separate policy statements for each principal [3].
+
+Citations:
+
+- 1: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+- 2: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_grammar.html
+- 3: https://stackoverflow.com/questions/73970794/correct-way-to-write-multiple-principal-aws-in-aws-iam-role-trustentity-relation
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+# Show the referenced snippet with a bit of surrounding context
+echo "=== policies/secretsmanager_privacy_transfer_governance.rego: lines 70-120 ==="
+nl -ba policies/secretsmanager_privacy_transfer_governance.rego | sed -n '70,120p'
+
+# Find all usages of principal_arn in the file
+echo
+echo "=== usages of principal_arn( in policies/secretsmanager_privacy_transfer_governance.rego ==="
+rg -n "principal_arn\\(" policies/secretsmanager_privacy_transfer_governance.rego
+
+# Show how principal_account_id is computed (if present) and where cross-border checks are made
+echo
+echo "=== occurrences of principal_account_id and cross-border checks keywords ==="
+rg -n "principal_account_id|cross[- ]border|border" policies/secretsmanager_privacy_transfer_governance.rego
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 239
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+FILE="policies/secretsmanager_privacy_transfer_governance.rego"
+
+echo "=== $FILE: lines 70-120 (cat -n) ==="
+cat -n "$FILE" | sed -n '70,120p'
+
+echo
+echo "=== usages of principal_arn( in $FILE ==="
+rg -n "principal_arn\\(" "$FILE"
+
+echo
+echo "=== occurrences of principal_account_id and cross-border checks keywords ==="
+rg -n "principal_account_id|cross[- ]border|border" "$FILE"
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 3258
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+FILE="policies/secretsmanager_privacy_transfer_governance.rego"
+
+echo "=== $FILE: lines 115-210 (cat -n) ==="
+cat -n "$FILE" | sed -n '115,210p'
+
+echo
+echo "=== rg for principal_account_id(principal_entry) usage ==="
+rg -n "principal_account_id\\(principal_entry\\)|principal_account := principal_account_id" "$FILE"
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 2487
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+FILE="policies/secretsmanager_privacy_transfer_governance.rego"
+
+echo "=== $FILE: search for array handling around Principal.AWS ==="
+rg -n "is_array\\(|AWS', \\[|AWS\\\", \\[|AWS\\\"\\]|\\bprincipal_arn\\b|\\bprincipal_account_id\\b" "$FILE"
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 400
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+FILE="policies/secretsmanager_privacy_transfer_governance.rego"
+
+echo "=== $FILE: is_array occurrences ==="
+rg -n "is_array" "$FILE" || true
+
+echo
+echo "=== $FILE: occurrences of 'AWS' within principal_arn blocks ==="
+rg -n "principal_arn\\(|principal :=|aws :=|\"AWS\"" "$FILE" | head -n 200
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 880
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+FILE="policies/secretsmanager_privacy_transfer_governance.rego"
+
+echo "=== $FILE: where principals is defined ==="
+rg -n "principals\\b" "$FILE" | head -n 200
+
+echo
+echo "=== $FILE: show lines around principals definition ==="
+# Print a wider window around the first principals occurrence
+FIRST_LINE=$(rg -n "principals\\b" "$FILE" | head -n 1 | cut -d: -f1)
+START=$((FIRST_LINE-30))
+END=$((FIRST_LINE+80))
+if [ $START -lt 1 ]; then START=1; fi
+cat -n "$FILE" | sed -n "${START},${END}p"
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 4963
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+echo "=== files containing \"resource_policy\" and \"principals\" ==="
+rg -n "resource_policy.*principals|principals\\s*:=|\"principals\"" -S . || true
+
+echo
+echo "=== search for parsing of Principal.AWS ==="
+rg -n "\"AWS\"\\s*:\\s*\\[|Principal\"|principal\\.AWS|Principal\\.AWS|principal_arn\\(" -S . || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 13183
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+echo "=== README excerpt around resource_policy/principals ==="
+# show first 120 lines around where resource_policy is mentioned
+rg -n "\"resource_policy\"" README.md || true
+cat -n README.md | sed -n '1,120p'
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 10593
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+FILE="policies/secretsmanager_privacy_transfer_governance_test.rego"
+
+echo "=== $FILE: lines 1-140 ==="
+cat -n "$FILE" | sed -n '1,140p'
+
+echo
+echo "=== $FILE: lines 140-240 ==="
+cat -n "$FILE" | sed -n '140,240p'
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 5924
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+echo "=== top-level files/directories ==="
+ls -la
+
+echo
+echo "=== search for normalization of Principal/AWS in code ==="
+rg -n "resource_policy\\.principals|principals\"\\s*:\\s*\\[|Principal\\.AWS|principal\\.aws|\"principal\"\\s*:\\s*\\{|\"AWS\"\\s*:\\s*\\[|Principal\"\\s*:\\s*\\{|Principal\\s*\\(" -S . || true
+
+echo
+echo "=== search for AWS policy parsing helpers ==="
+rg -n "iam.*policy|parse.*policy|Principal|AssumeRole|resource policy|GetResourcePolicy|PolicyDocument|principal(s)?_?entries" -S . || true
+
+echo
+echo "=== list likely source dirs (excluding node_modules/dist) ==="
+find . -maxdepth 3 -type d \( -name ".git" -o -name "node_modules" -o -name "dist" -o -name "build" \) -prune -o -type d -print | head -n 200
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 6759
+
+---
+
+</details>
+
+**Handle `Principal.AWS` arrays in `principal_arn` so cross-border checks can’t be skipped**
+`policies/secretsmanager_privacy_transfer_governance.rego` only derives `principal_arn`/`principal_account_id` when `principal` is a string or when `principal.AWS` is a string; if `principal.AWS` is an array (valid AWS policy shape), `principal_account_id` won’t bind and `principal_region` / `cross_border_principal_undocumented` won’t evaluate for those principals.
+
+<details>
+<summary>Suggested fix</summary>
+
+```diff
+ principal_arn(principal_entry) := arn if {
+ 	principal := object.get(principal_entry, "principal", {})
+ 	is_object(principal)
+ 	aws := object.get(principal, "AWS", "")
+ 	is_string(aws)
+ 	arn := aws
+ }
++
++principal_arn(principal_entry) := arn if {
++	principal := object.get(principal_entry, "principal", {})
++	is_object(principal)
++	aws := object.get(principal, "AWS", [])
++	is_array(aws)
++	arn := aws[_]
++	is_string(arn)
++}
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+principal_arn(principal_entry) := arn if {
+	principal := object.get(principal_entry, "principal", {})
+	is_object(principal)
+	aws := object.get(principal, "AWS", "")
+	is_string(aws)
+	arn := aws
+}
+
+principal_arn(principal_entry) := arn if {
+	principal := object.get(principal_entry, "principal", {})
+	is_object(principal)
+	aws := object.get(principal, "AWS", [])
+	is_array(aws)
+	arn := aws[_]
+	is_string(arn)
+}
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_privacy_transfer_governance.rego` around lines 88 -
+94, principal_arn currently only handles string principals and string
+principal.AWS values, so AWS arrays are ignored; update the principal_arn rule
+to also handle when object.get(principal, "AWS", aws) yields an array by
+iterating its elements (e.g., using is_array(aws) and accessing aws[_] as elem)
+and binding arn := elem when is_string(elem), so principal_arn produces a value
+for each ARN in the array; ensure this uses the same principal_entry symbol and
+that downstream rules like principal_account_id, principal_region and
+cross_border_principal_undocumented continue to reference principal_arn so
+they’ll evaluate for each ARN.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_resource_policy_least_privilege.rego:66):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+<details>
+<summary>🧩 Analysis chain</summary>
+
+🌐 Web query:
+
+`In AWS IAM/Secrets Manager resource policies, can `Principal` use `{"AWS": ["arn:...","*"]}` (array form), and should `"*"` in that array be treated as wildcard principal access?`
+
+💡 Result:
+
+Yes, the Principal element can use an array form such as {"AWS": ["arn:...", "*"]} in resource-based policies, but the "*" entry is not a wildcard that matches ARNs inside the Principal list. 1) Array form for Principal AWS policy docs say you can specify more than one principal value in a Principal element by using an array (logical OR). [1] 2) Meaning of "*" in Principal for resource-based policies AWS docs explicitly state: - You can use a wildcard (*) in the Principal element of a resource-based policy to specify all principals. [1] - However, when you specify users in a Principal element, you cannot use a wildcard (*) to mean “all users”; principals must name specific users. [1] - Also: You cannot use a wildcard to match part of a principal name or ARN. [1] So, putting "*" in that array should be interpreted as “all principals” (equivalent to setting Principal to "*"), not as a wildcard that expands within the provided ARN list. [1] 3) Secrets Manager resource policy safety Secrets Manager provides ValidateResourcePolicy, whose checks include rejecting resource policies that allow broad access to the secret, “for example policies that use a wildcard for the principal.” This indicates that using broad principal wildcards (like "*") is treated as unsafe/broad access. [2] Bottom line - Syntax: allowed to use array form with multiple "AWS" principal values. [1] - Semantics: the "*" principal means everyone/all principals, not “any ARN that matches the wildcarded ARNs you listed”. And AWS will treat wildcard principals as broad access (not fine-grained ARN matching). [1][2]
+
+Citations:
+
+- 1: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html
+- 2: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_ValidateResourcePolicy.html
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+# Show the relevant portion of the Rego file
+FILE="policies/secretsmanager_resource_policy_least_privilege.rego"
+echo "== $FILE =="
+nl -ba "$FILE" | sed -n '1,220p'
+
+echo
+echo "== Search for helper definitions/usages =="
+rg -n "principal_is_wildcard|principal_arn|principal_account_id|principals\\b|principal_values" "$FILE" || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 227
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+
+# Find any other occurrences of principal parsing across the repo
+rg -n "resource_policy_least_privilege|cross_account_principal_undocumented|principal_is_wildcard|principal_arn|principal_account_id" . --glob='*.rego'
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 7143
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+FILE="policies/secretsmanager_resource_policy_least_privilege.rego"
+echo "== $FILE lines 1-170 =="
+awk '{printf "%5d:%s\n", NR, $0}' "$FILE" | sed -n '1,170p'
+echo
+echo "== $FILE lines 90-140 =="
+awk '{printf "%5d:%s\n", NR, $0}' "$FILE" | sed -n '90,140p'
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 5414
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+TEST="policies/secretsmanager_resource_policy_least_privilege_test.rego"
+echo "== $TEST =="
+awk '{printf "%5d:%s\n", NR, $0}' "$TEST" | sed -n '1,140p'
+
+echo
+echo "== Search test inputs for array-form Principal AWS =="
+rg -n '"AWS"\s*:\s*\[|\"AWS\"\s*:\s*\[|principal"\s*:\s*\{[^}]*"AWS"\s*:\s*\[|\"principal\"\s*:\s*\{[^}]*\"AWS\"\s*:\s*\[' "$TEST" || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 4361
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+FILE="policies/secretsmanager_resource_policy_least_privilege.rego"
+
+echo "== Search for principals[_] and principal parsing usage in policy file =="
+rg -n "principals\\[_\\]|violation\\[\\{\"id\": \"cross_account_principal_undocumented\"\\}\\]|principal := principals\\[_\\]" "$FILE"
+
+echo
+echo "== Search for principals definition / input shape =="
+rg -n "principals\\s*:?=|principals\\s*\\[" "$FILE"
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 680
+
+---
+
+🏁 Script executed:
+
+```shell
+#!/bin/bash
+set -euo pipefail
+rg -n "\"AWS\"\\s*:\\s*\\[" policies --glob='*.rego' || true
+rg -n "\"principal\"\\s*:\\s*\\{[^}]*\"AWS\"\\s*:\\s*\\[" policies --glob='*.rego' || true
+rg -n "principal\\s*:=\\s*object\\.get\\(principal_entry,\\s*\"principal\"" policies --glob='*.rego' || true
+```
+
+Repository: compliance-framework/plugin-aws-secretsmanager-policies
+
+Length of output: 2503
+
+---
+
+</details>
+
+**Fix `Principal.AWS` array handling to prevent wildcard/cross-account bypasses**
+
+`policies/secretsmanager_resource_policy_least_privilege.rego` only evaluates `principal` when it’s a string or when `principal.AWS` is a string; it does not handle the `{"AWS": [ ... ]}` (array) form. As a result, policies like `{"principal": {"AWS": ["arn:...", "*"]}}` will miss `"*"` (wildcard/all principals) and miss any cross-account entries inside the array—so violations won’t be emitted (affects `principal_is_wildcard` / `principal_arn` at 43-66, `principal_account_id` at 72-84, and the violations at 91-107). AWS treats `Principal: "*"`-style access broadly, and `"*"` in the resource-policy `Principal` means all principals.
+
+<details>
+<summary>Proposed fix (normalize principal values before evaluation)</summary>
+
+```diff
++principal_values(principal_entry)[v] if {
++	principal := object.get(principal_entry, "principal", "")
++	is_string(principal)
++	v := principal
++}
++
++principal_values(principal_entry)[v] if {
++	principal := object.get(principal_entry, "principal", {})
++	is_object(principal)
++	aws := object.get(principal, "AWS", "")
++	is_string(aws)
++	v := aws
++}
++
++principal_values(principal_entry)[v] if {
++	principal := object.get(principal_entry, "principal", {})
++	is_object(principal)
++	aws_list := object.get(principal, "AWS", [])
++	is_array(aws_list)
++	v := aws_list[_]
++	is_string(v)
++}
++
+ principal_is_wildcard(principal_entry) if {
+-	principal := object.get(principal_entry, "principal", "")
+-	principal == "*"
+-}
+-
+-principal_is_wildcard(principal_entry) if {
+-	principal := object.get(principal_entry, "principal", {})
+-	is_object(principal)
+-	object.get(principal, "AWS", "") == "*"
++	v := principal_values(principal_entry)[_]
++	v == "*"
+ }
+
+-principal_arn(principal_entry) := arn if {
+-	principal := object.get(principal_entry, "principal", "")
+-	is_string(principal)
+-	arn := principal
+-}
+-
+-principal_arn(principal_entry) := arn if {
+-	principal := object.get(principal_entry, "principal", {})
+-	is_object(principal)
+-	aws := object.get(principal, "AWS", "")
+-	is_string(aws)
+-	arn := aws
+-}
+-
+ allow_effect(principal_entry) if {
+ 	lower(object.get(principal_entry, "effect", "")) == "allow"
+ }
+
+-principal_account_id(principal_entry) := principal_account if {
+-	arn := principal_arn(principal_entry)
+-	regex.match("^[0-9]{12}$", arn)
+-	principal_account := arn
++principal_account_id_from_value(v) := principal_account if {
++	regex.match(`^[0-9]{12}$`, v)
++	principal_account := v
+ }
+
+-principal_account_id(principal_entry) := principal_account if {
+-	arn := principal_arn(principal_entry)
+-	parts := split(arn, ":")
++principal_account_id_from_value(v) := principal_account if {
++	parts := split(v, ":")
+ 	count(parts) > 4
+ 	principal_account := parts[4]
+-	regex.match("^[0-9]{12}$", principal_account)
++	regex.match(`^[0-9]{12}$`, principal_account)
+ }
+
+ violation[{"id": "cross_account_principal_undocumented"}] if {
+ 	resource_type == "secret"
+ 	resource_policy_present
+ 	principal := principals[_]
+ 	allow_effect(principal)
+-	principal_account := principal_account_id(principal)
++	v := principal_values(principal)[_]
++	principal_account := principal_account_id_from_value(v)
+ 	principal_account != account_id
+ 	not allowed_cross_account_ids[principal_account]
+ }
+```
+</details>
+
+<details>
+<summary>🧰 Tools</summary>
+
+<details>
+<summary>🪛 Regal (0.40.0)</summary>
+
+[error] 51-51: Superfluous `object.get` call
+
+(idiomatic)
+
+</details>
+
+</details>
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_resource_policy_least_privilege.rego` around lines 43
+- 66, The current rules only handle principal when it's a string or when
+principal.AWS is a string; update principal_is_wildcard, principal_arn and
+principal_account_id to normalize and handle when object.get(principal_entry,
+"principal", {}) yields {"AWS": [ ... ]} by iterating the array: treat any
+element equal to "*" as a wildcard (principal_is_wildcard should succeed),
+expose each array element as a candidate ARN in principal_arn (return each
+string element) and extract account IDs from each ARN in principal_account_id;
+ensure is_object/principal string branches remain and that calling
+rules/violations consume the normalized set of ARNs/wildcards so array-contained
+"*" or cross-account ARNs are detected.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_rotation_configured_test.rego:62):
+_⚠️ Potential issue_ | _🟡 Minor_ | _⚡ Quick win_
+
+**Strengthen service-linked skip assertion.**
+
+`test_service_linked_skipped` should also assert `policy.skip_reason` to verify it skipped for the intended reason, not just because violations were empty.
+
+<details>
+<summary>Proposed fix</summary>
+
+```diff
+ test_service_linked_skipped if {
+ 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/rotation_enabled", "value": false}, {"op": "replace", "path": "/config/owning_service", "value": "rds.amazonaws.com"}])
+ 	count(policy.violation) == 0 with input as inp
++	policy.skip_reason with input as inp
+ }
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+test_service_linked_skipped if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/rotation_enabled", "value": false}, {"op": "replace", "path": "/config/owning_service", "value": "rds.amazonaws.com"}])
+	count(policy.violation) == 0 with input as inp
+	policy.skip_reason with input as inp
+}
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_rotation_configured_test.rego` around lines 59 - 62,
+The test test_service_linked_skipped currently only checks
+count(policy.violation) == 0; update it to also assert the policy.skip_reason to
+ensure the skip happened for the service-linked case. After building inp from
+base_secret, add an assertion that policy.skip_reason (or the relevant evaluated
+skip field) equals the expected message (e.g., something indicating "service
+linked" or "rotation not applicable for rds.amazonaws.com") so the test verifies
+both no violations and the correct skip rationale.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_rotation_timeliness.rego:97):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Missing rotation cadence is currently a silent pass path.**
+
+If `automatically_after_days` is null/non-positive and `schedule_expression` is empty, there is no skip or violation; `rotation_overdue` just becomes non-evaluable.
+
+<details>
+<summary>Suggested fix</summary>
+
+```diff
+ skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%q; collector must provide a normalized day cadence.", [secret_arn, schedule_expression]) if {
+ 	resource_type == "secret"
+ 	rotation_enabled
+ 	not is_service_linked
+ 	last_rotated_date != ""
+ 	schedule_expression != ""
+ 	not automatically_after_days_positive
+ 	not schedule_rate_days_positive
+ }
++
++skip_reason := sprintf("Secret %s is missing a normalized rotation cadence; provide automatically_after_days or a supported schedule_expression.", [secret_arn]) if {
++	resource_type == "secret"
++	rotation_enabled
++	not is_service_linked
++	last_rotated_date != ""
++	schedule_expression == ""
++	not automatically_after_days_positive
++}
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+effective_rotation_days := automatically_after_days if {
+	automatically_after_days_positive
+}
+
+effective_rotation_days := schedule_rate_days if {
+	not automatically_after_days_positive
+	schedule_rate_days_positive
+}
+
+rotation_deadline_days := effective_rotation_days * data.rotation_grace_multiplier
+
+skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%q; collector must provide a normalized day cadence.", [secret_arn, schedule_expression]) if {
+	resource_type == "secret"
+	rotation_enabled
+	not is_service_linked
+	last_rotated_date != ""
+	schedule_expression != ""
+	not automatically_after_days_positive
+	not schedule_rate_days_positive
+}
+
+skip_reason := sprintf("Secret %s is missing a normalized rotation cadence; provide automatically_after_days or a supported schedule_expression.", [secret_arn]) if {
+	resource_type == "secret"
+	rotation_enabled
+	not is_service_linked
+	last_rotated_date != ""
+	schedule_expression == ""
+	not automatically_after_days_positive
+}
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_rotation_timeliness.rego` around lines 78 - 97, The
+policy currently silently skips evaluation when neither automatically_after_days
+nor a parsed schedule cadence exist; add a skip rule to surface this: create a
+new skip_reason clause (similar style to the existing one) that fires when
+resource_type == "secret", rotation_enabled, not is_service_linked,
+last_rotated_date != "", not automatically_after_days_positive,
+schedule_expression == "", and not schedule_rate_days_positive, producing a
+message like "Secret %s is missing rotation cadence; collector must provide
+automatically_after_days or a normalized schedule_expression." Reference the
+existing identifiers effective_rotation_days, automatically_after_days_positive,
+schedule_rate_days_positive, schedule_expression, secret_arn, and
+last_rotated_date to implement this new skip path so rotation_overdue becomes
+evaluable or explicitly skipped.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_vendor_credential_rotation.rego:106):
+_⚠️ Potential issue_ | _🟠 Major_ | _⚡ Quick win_
+
+**Gate stale-rotation violation on `rotation_enabled` as well.**
+
+`vendor_rotation_stale` currently fires even when rotation is disabled, while `vendor_rotation_never_executed` is gated by `rotation_enabled`. This inconsistency can produce false positives.
+
+<details>
+<summary>🔧 Proposed fix</summary>
+
+```diff
+ violation[{"id": "vendor_rotation_stale"}] if {
+ 	resource_type == "secret"
+ 	is_vendor_secret
+ 	not is_service_linked
+ 	not allowed_unrotated_vendor
++	rotation_enabled
+ 	last_rotated_date != ""
+ 	days_since_rotation > data.vendor_rotation_max_days
+ }
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+violation[{"id": "vendor_rotation_stale"}] if {
+	resource_type == "secret"
+	is_vendor_secret
+	not is_service_linked
+	not allowed_unrotated_vendor
+	rotation_enabled
+	last_rotated_date != ""
+	days_since_rotation > data.vendor_rotation_max_days
+}
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_vendor_credential_rotation.rego` around lines 99 -
+106, The rule producing violation id "vendor_rotation_stale" fires even when
+rotation is disabled; update the rule (the block that defines
+violation[{"id":"vendor_rotation_stale"}]) to require rotation_enabled (or
+rotation_enabled == true) just like vendor_rotation_never_executed does so the
+rule only evaluates stale-rotation when rotation is enabled; add the
+rotation_enabled predicate to the existing conditions (alongside resource_type,
+is_vendor_secret, not is_service_linked, not allowed_unrotated_vendor,
+last_rotated_date != "", and days_since_rotation >
+data.vendor_rotation_max_days).
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+---
+Comment (policies/secretsmanager_vendor_credential_tagging.rego:82):
+_🛠️ Refactor suggestion_ | _🟠 Major_ | _⚡ Quick win_
+
+**Default `require_integration_type_tag` to avoid silent enforcement gaps.**
+
+Line 79 reads `data.require_integration_type_tag` directly. If that key is missing at evaluation time, this rule becomes undefined and the `IntegrationType` requirement is skipped.
+
+<details>
+<summary>💡 Proposed fix</summary>
+
+```diff
++require_integration_type_tag := object.get(data, "require_integration_type_tag", true)
++
+ violation[{"id": "integration_type_tag_missing"}] if {
+ 	resource_type == "secret"
+ 	is_vendor_secret
+-	data.require_integration_type_tag
++	require_integration_type_tag
+ 	vendor_id != ""
+ 	integration_type == ""
+ }
+```
+</details>
+
+<!-- suggestion_start -->
+
+<details>
+<summary>📝 Committable suggestion</summary>
+
+> ‼️ **IMPORTANT**
+> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+```suggestion
+require_integration_type_tag := object.get(data, "require_integration_type_tag", true)
+
+violation[{"id": "integration_type_tag_missing"}] if {
+	resource_type == "secret"
+	is_vendor_secret
+	require_integration_type_tag
+	vendor_id != ""
+	integration_type == ""
+}
+```
+
+</details>
+
+<!-- suggestion_end -->
+
+<details>
+<summary>🤖 Prompt for AI Agents</summary>
+
+```
+Verify each finding against current code. Fix only still-valid issues, skip the
+rest with a brief reason, keep changes minimal, and validate.
+
+In `@policies/secretsmanager_vendor_credential_tagging.rego` around lines 76 - 82,
+The rule referencing data.require_integration_type_tag (the violation with id
+"integration_type_tag_missing") should not read that key directly because a
+missing key makes the rule undefined; update the condition to use a default
+value (e.g., treat missing as true) by using a safe defaulting pattern when
+evaluating data.require_integration_type_tag (for example via a helper or a
+default expression) so the IntegrationType requirement is enforced even if the
+key is absent.
+```
+
+</details>
+
+<!-- fingerprinting:phantom:poseidon:hawk -->
+
+<!-- This is an auto-generated comment by CodeRabbit -->
+Implementation guidance: Update .github/workflows/build-and-upload.yml to remove the workflow-level write permissions. Because the build-and-upload job already has contents: write and packages: write, delete the top-level permissions block entirely or replace it with permissions: {} while preserving jobs.build-and-upload.permissions with contents: write and packages: write. Do not remove the job-level permissions needed by softprops/action-gh-release and gooci GHCR upload.
+Implementation guidance: In .github/workflows/build-and-upload.yml, change the upload versioned bundle step so it does not use github.ref_name directly as the OCI tag. Keep GH_REPOSITORY and GH_REF_NAME in env, make run a multi-line script, derive a safe TAG from GH_REF_NAME by replacing '/' with '-' and also normalizing any other OCI-tag-invalid characters if practical, then call gooci upload-single dist/bundle.tar.gz "ghcr.io/$GH_REPOSITORY:$TAG". Leave the latest tag upload unchanged.
+Implementation guidance: Update .github/workflows/release.yml by moving the top-level permissions block under jobs.build-and-upload.permissions. The reusable workflow call job should explicitly grant contents: write and packages: write because the called workflow attaches release assets and uploads to GHCR. Remove the top-level permissions block so token permissions are scoped to the single job that needs them.
+Implementation guidance: In policies/secretsmanager_access_administration_events.rego, update matching_admin_events so CloudTrail admin events are matched by both admin event name and the current secret_arn. Add local helper predicates/functions that recognize the collector's secret identifier fields in an event, such as top-level secret_arn, request_parameters.secret_id/secret_arn, requestParameters.secretId/secretArn, or resources entries with ARN/arn equal to secret_arn. Then build matching_admin_events only from events where admin_event_names contains event_name and the event references secret_arn. Keep matching_admin_event_times based on matching_admin_events. Add a regression test in policies/secretsmanager_access_administration_events_test.rego with an admin event for a different secret that must not satisfy the current secret's audit evidence or drive stale/unattributable/missing-timestamp findings.
+Implementation guidance: Replace the risk_templates object in policies/secretsmanager_admin_principal_present.rego so it describes admin_principal_missing, not excessive resource-policy access. Use a name/title about a missing administrative principal, a statement explaining that no approved principal has administrative lifecycle rights, CWE-284 or no threat_refs, and remediation tasks such as adding an approved admin principal ARN and documenting required administrative access. Do not change the admin_principal_present or violation logic.
+Implementation guidance: In policies/secretsmanager_confidential_disposal_record.rego, change delete_secret_events so it filters DeleteSecret CloudTrail events to only those referencing the current secret_arn. Add a helper for event-to-secret matching that handles likely collector shapes such as top-level secret_arn, request_parameters.secret_id/secret_arn, requestParameters.secretId/secretArn, and resources entries containing ARN/arn. Keep the existing DeleteSecret event_name filter. Add a test in the disposal record test file with DeleteSecret events for another secret and the current secret, proving only the current secret's event affects disposal_authorisation_tag_missing, disposal_event_unattributable, and unrecorded_administration.
+Implementation guidance: In policies/secretsmanager_confidential_policy_scope.rego, normalize Principal values locally without introducing a shared package. Add a principal_values(principal_entry)[v] helper that yields the string principal, string principal.AWS, and every string element of principal.AWS when it is an array. Rewrite principal_is_wildcard to check principal_values for '*', rewrite principal_arn to yield each principal_values entry, and leave principal_account_id consuming principal_arn so bare 12-digit accounts and ARN account IDs still work. Add tests for {"AWS": ["*"]} triggering wildcard_principal and {"AWS": [cross-account ARN or bare account]} triggering cross_account_principal/principal_outside_cleared_role_set as applicable.
+Implementation guidance: In policies/secretsmanager_confidential_rotation_required.rego, include schedule_expression when evaluating rotation_cadence_too_long. Add schedule_expression parsing consistent with policies/secretsmanager_rotation_timeliness.rego: lower/trim the expression, parse rate(N day/days) into schedule_rate_days, define effective_rotation_days as positive automatically_after_days when present otherwise positive schedule_rate_days, and compare effective_rotation_days to data.max_confidential_rotation_days. If schedule_expression is present but unsupported and automatically_after_days is null or non-positive, add an explicit skip_reason rather than silently passing. Keep not is_service_linked on rotation_cadence_too_long. Add tests for schedule-only rate above the max triggering the violation and schedule-only rate within the max passing.
+Implementation guidance: In policies/secretsmanager_owner_tag_present_test.rego, update test_case_insensitive_key_passes so the replacement tags use an Owner key case variant, for example {"oWnEr": "platform"}, instead of {"team": "platform"}. Keep the assertion count(policy.violation) == 0 with input as inp. This should specifically exercise case-insensitive owner-key matching.
+Implementation guidance: In policies/secretsmanager_privacy_subprocessor_posture.rego, scope vendor/subprocessor-specific checks to vendor PI secrets. Add an in_scope helper requiring resource_type == "secret", is_pi_secret, and is_vendor_secret. Add a skip_reason for resource_type == "secret", is_pi_secret, and not is_vendor_secret explaining the policy applies only to vendor PI subprocessors. Replace guards on vendor_id_tag_missing, aws_managed_default_kms_key, rotation_disabled, rotation_overdue, principal_wildcard, vendor_integration_role_not_documented, principal_outside_integration_role_set, and excess_actions with in_scope where appropriate. Preserve the existing service-linked exception only on rotation_disabled and rotation_overdue; do not skip KMS or resource-policy posture for service-linked vendor PI secrets. Ensure IntegrationType=vendor with missing VendorId remains in scope so vendor_id_tag_missing still fires.
+Implementation guidance: In policies/secretsmanager_privacy_transfer_governance.rego, extend principal_arn to handle Principal.AWS arrays. Add a local principal_values helper or an additional principal_arn rule that, when principal is an object and AWS is an array, iterates each string element and yields it as an ARN/principal value. Ensure principal_account_id continues to handle both bare 12-digit account IDs and ARN-shaped values emitted from the array. Add a regression test with Principal {"AWS": ["arn:aws:iam::999999999999:role/x"]} proving cross_border_principal_undocumented evaluates for array entries.
+Implementation guidance: In policies/secretsmanager_resource_policy_least_privilege.rego, normalize principal values locally and support Principal.AWS arrays. Add principal_values(principal_entry)[v] for string principal, string principal.AWS, and each string in principal.AWS arrays. Rewrite principal_is_wildcard to succeed when any normalized value is '*'. Rewrite principal_arn to yield each normalized value, and keep principal_account_id extracting either bare 12-digit accounts or account IDs from ARN values. Preserve allow_effect so Deny statements do not create findings. Add tests for an Allow principal with {"AWS": ["*"]} producing wildcard_principal and an Allow principal with {"AWS": ["999999999999"]} or a cross-account ARN producing cross_account_principal_undocumented.
+Implementation guidance: In policies/secretsmanager_rotation_configured_test.rego, strengthen test_service_linked_skipped by asserting policy.skip_reason in addition to count(policy.violation) == 0. Prefer checking the skip_reason string contains or equals the expected service-linked message for owning_service rds.amazonaws.com, matching the policy's actual skip_reason text. Do not change the policy logic.
+Implementation guidance: In policies/secretsmanager_rotation_timeliness.rego, add an explicit skip_reason for enabled, non-service-linked secrets with last_rotated_date set but no usable cadence. The new skip should fire when resource_type == "secret", rotation_enabled, not is_service_linked, last_rotated_date != "", not automatically_after_days_positive, schedule_expression == "", and not schedule_rate_days_positive, with a message telling the collector to provide automatically_after_days or a supported schedule_expression. Keep the existing unsupported non-empty schedule_expression skip and rotation_overdue logic unchanged. Add a regression test showing this missing-cadence case returns skip_reason and no rotation_overdue.
+Implementation guidance: In policies/secretsmanager_vendor_credential_rotation.rego, add rotation_enabled to the vendor_rotation_stale violation conditions, matching vendor_rotation_never_executed. Keep resource_type == "secret", is_vendor_secret, not is_service_linked, not allowed_unrotated_vendor, last_rotated_date != "", and the days_since_rotation threshold. Add or update a test so a vendor secret with rotation_enabled false and an old last_rotated_date does not emit vendor_rotation_stale.
+Implementation guidance: In policies/secretsmanager_vendor_credential_tagging.rego, stop reading data.require_integration_type_tag directly in the integration_type_tag_missing rule. Add a local helper such as require_integration_type_tag := object.get(data, "require_integration_type_tag", true), and use that helper in the violation so a missing data key defaults to enforcement enabled. Add a test that evaluates with data.require_integration_type_tag absent or overridden appropriately and confirms a vendor_id-tagged secret with empty IntegrationType still triggers integration_type_tag_missing.
