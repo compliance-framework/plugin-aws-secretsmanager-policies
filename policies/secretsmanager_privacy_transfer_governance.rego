@@ -114,12 +114,14 @@ data_subject_flow := object.get(tags, "DataSubjectFlow", "")
 documented_data_subject_flows := {flow | flow := data.documented_data_subject_flows[_]}
 allowed_pi_transfer_regions := {region | region := data.allowed_pi_transfer_regions[_]}
 
-principal_region(principal_entry) := region if {
+principal_regions(principal_entry) := regions if {
 	allow_effect(principal_entry)
-	arn := principal_values(principal_entry)[_]
-	principal_account := principal_account_id_from_value(arn)
-	region := object.get(data.account_id_to_region, principal_account, "")
-	region != ""
+	regions := {region |
+		arn := principal_values(principal_entry)[_]
+		principal_account := principal_account_id_from_value(arn)
+		region := object.get(data.account_id_to_region, principal_account, "")
+		region != ""
+	}
 }
 
 title := sprintf("Validate PI transfer governance for %s", [secret_arn])
@@ -145,7 +147,7 @@ violation[{"id": "cross_border_principal_undocumented"}] if {
 	resource_policy_present
 	count(data.account_id_to_region) > 0
 	principal := principals[_]
-	region := principal_region(principal)
+	region := principal_regions(principal)[_]
 	not allowed_pi_transfer_regions[region]
 }
 

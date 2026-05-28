@@ -71,6 +71,11 @@ test_cross_border_principal_array if {
 	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as inp with data.account_id_to_region as {"999999999999": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
 }
 
+test_cross_border_principal_array_with_multiple_regions if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": {"AWS": ["arn:aws:iam::111111111111:role/vendor", "arn:aws:iam::222222222222:role/vendor"]}}])
+	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as inp with data.account_id_to_region as {"111111111111": "us-east-1", "222222222222": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+}
+
 test_bare_account_principals if {
 	same := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "123456789012"}])
 	count(policy.violation) == 0 with input as same with data.account_id_to_region as {"123456789012": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]

@@ -40,43 +40,35 @@ dynamic := object.get(input, "dynamic", {})
 cloudtrail_events := object.get(dynamic, "cloudtrail_events", [])
 admin_event_names := {name | name := data.admin_event_names[_]}
 
-event_secret_id(event) := id if {
-	id := object.get(event, "secret_arn", "")
-	id != ""
-}
-
-event_secret_id(event) := id if {
-	params := object.get(event, "request_parameters", {})
-	id := object.get(params, "secret_arn", "")
-	id != ""
-}
-
-event_secret_id(event) := id if {
-	params := object.get(event, "request_parameters", {})
-	id := object.get(params, "secret_id", "")
-	id != ""
-}
-
-event_secret_id(event) := id if {
-	params := object.get(event, "requestParameters", {})
-	id := object.get(params, "secretArn", "")
-	id != ""
-}
-
-event_secret_id(event) := id if {
-	params := object.get(event, "requestParameters", {})
-	id := object.get(params, "secretId", "")
-	id != ""
-}
-
-event_secret_id(event) := id if {
-	resource := object.get(event, "resources", [])[_]
-	id := object.get(resource, "ARN", object.get(resource, "arn", ""))
-	id != ""
+event_secret_ids(event) := ids if {
+	ids := (({id |
+		id := object.get(event, "secret_arn", "")
+		id != ""
+	} | {id |
+		params := object.get(event, "request_parameters", {})
+		id := object.get(params, "secret_arn", "")
+		id != ""
+	}) | ({id |
+		params := object.get(event, "request_parameters", {})
+		id := object.get(params, "secret_id", "")
+		id != ""
+	} | {id |
+		params := object.get(event, "requestParameters", {})
+		id := object.get(params, "secretArn", "")
+		id != ""
+	})) | ({id |
+		params := object.get(event, "requestParameters", {})
+		id := object.get(params, "secretId", "")
+		id != ""
+	} | {id |
+		resource := object.get(event, "resources", [])[_]
+		id := object.get(resource, "ARN", object.get(resource, "arn", ""))
+		id != ""
+	})
 }
 
 event_matches_secret(event) if {
-	event_secret_id(event) == secret_arn
+	event_secret_ids(event)[secret_arn]
 }
 
 matching_admin_events := [event | event := cloudtrail_events[_]; admin_event_names[object.get(event, "event_name", "")]; event_matches_secret(event)]

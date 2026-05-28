@@ -76,6 +76,13 @@ test_delete_secret_events_scoped_to_secret if {
 	not policy.violation[{"id": "disposal_event_unattributable"}] with input as inp
 }
 
+test_delete_secret_event_with_short_secret_id_and_resource_arn_matches if {
+	event := {"event_name": "DeleteSecret", "event_time": "2026-05-20T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin", "requestParameters": {"secretId": "s-1"}, "resources": [{"ARN": base_secret.config.secret_arn}]}
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": [event]}, {"op": "replace", "path": "/tags/DisposalAuthorisation", "value": ""}])
+	policy.violation[{"id": "disposal_authorisation_tag_missing"}] with input as inp
+	not policy.violation[{"id": "disposal_event_unattributable"}] with input as inp
+}
+
 test_disabled_requirement if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}])
 	count(policy.violation) == 0 with input as inp with data.require_disposal_record as false
