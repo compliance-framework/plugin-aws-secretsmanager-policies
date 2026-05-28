@@ -1,0 +1,8 @@
+lisa-design:
+- Kept all policy packages flat under `policies/` with package names matching each file; no shared Rego helper package was introduced so selective loading remains file/package based.
+- Treated absent Secrets Manager resource policies as compliant for policy-scope/admin checks because implicit IAM-only administration is outside this bundle and belongs to IAM/Access Analyzer evidence.
+- Skipped service-linked secrets only for customer-managed rotation, owner, and admin-principal checks; KMS, replication, and tag-scoped posture still evaluate service-linked secrets when applicable.
+- Implemented unknown replication statuses as `skip_reason` rather than violations to preserve forward compatibility with future AWS enum values.
+- Used `time.now_ns()` directly in time-based rules and test-time builtin overrides because optional root `data.now` lookups recurse under `opa check --strict policies` when `data.json` is not loaded as schema/base data during check.
+- Kept cross-account allow-list behavior different by control family: generic and vendor policies have documented account allow-lists, while confidential policy intentionally has no cross-account exception.
+- Privacy role documentation is keyed by `VendorId` via `data.documented_integration_roles`; when a vendor is documented, every resource-policy principal ARN must be in that vendor-specific set.
