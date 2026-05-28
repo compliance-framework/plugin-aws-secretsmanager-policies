@@ -1,0 +1,60 @@
+lisa-addressed:
+---
+Comment (policies/secretsmanager_access_administration_events.rego:82):
+**`event_secret_id` raises a runtime `eval_conflict_error` on realistic CloudTrail events (medium).** Rego function rules with `:=` heads must produce a single output per input — multiple bodies that succeed with *different* values are a runtime conflict, not a relation. The six `event_secret_id` bodies (lines 43-76) cover the same input shape but read different fields; on a real CloudTrail event that populates more than one (e.g. `requestParameters.secretId == "MySecret"` *and* `resources[].ARN == "arn:aws:secretsmanager:...:secret:MySecret-AbCdEf"`, which is the **default CloudTrail shape** for Secrets Manager API calls), two bodies fire with different values and OPA errors out:
+
+```
+eval_conflict_error: functions must not produce multiple outputs for same inputs
+  policies/secretsmanager_access_administration_events.rego:72
+```
+
+I reproduced this locally by patching one test fixture to use the realistic shape (`requestParameters.secretId` + `resources[].ARN`). The existing tests don't catch it because each test event populates exactly one shape. The same shape exists in [secretsmanager_confidential_disposal_record.rego:73-106](policies/secretsmanager_confidential_disposal_record.rego#L73) — both files break together on the same evidence.
+
+Suggested fix: turn `event_secret_id` into a *set-valued* helper (partial rule) so all candidate IDs collect into one set, then `event_matches_secret(event)` succeeds when `secret_arn` is in that set. Roughly:
+
+```rego
+event_secret_ids(event) := ids if {
+    ids := {x | x := object.get(event, "secret_arn", ""); x != ""} |
+           {x | x := object.get(object.get(event, "request_parameters", {}), "secret_arn", ""); x != ""} |
+           ...
+           {x | resource := object.get(event, "resources", [])[_]; x := object.get(resource, "ARN", object.get(resource, "arn", "")); x != ""}
+}
+
+event_matches_secret(event) if event_secret_ids(event)[secret_arn]
+```
+
+Add a regression test with both `requestParameters.secretId` (a short `secretId`) and `resources[].ARN` (the full ARN matching `secret_arn`) populated on the same event.
+---
+Comment (policies/secretsmanager_confidential_disposal_record.rego:112):
+**Same runtime `eval_conflict_error` as `secretsmanager_access_administration_events.rego` (medium).** The six `event_secret_id` bodies (lines 73-106) here are the same shape as the access-administration policy and have the same runtime-error mode: a CloudTrail `DeleteSecret` event that populates both `requestParameters.secretId` and `resources[].ARN` (the default CloudTrail shape) makes `event_secret_id` produce two outputs for one input, and OPA aborts evaluation. `delete_secret_events` at this line consumes that broken helper, so every downstream violation (`disposal_authorisation_tag_missing`, `disposal_event_unattributable`, `unrecorded_administration`) is unreachable for realistic disposal evidence.
+
+Suggested fix: same as the sibling thread — convert `event_secret_id` to a set-valued helper and change `event_matches_secret` to membership in that set. Cover with a regression test that populates both shapes on the same DeleteSecret event.
+---
+Comment (policies/secretsmanager_privacy_transfer_governance.rego:119):
+**`principal_region` raises a runtime `eval_conflict_error` on `Principal.AWS` arrays that span multiple mapped accounts (medium).** Same Rego `:=` function-conflict shape as the `event_secret_id` thread on `secretsmanager_access_administration_events.rego`. The body iterates `arn := principal_values(principal_entry)[_]` and computes a region for each arn; for a `Principal: {"AWS": ["arn:aws:iam::111111111111:role/x", "arn:aws:iam::222222222222:role/y"]}` with `data.account_id_to_region` mapping the two accounts to *different* regions, this body succeeds twice with different region values, and OPA aborts:
+
+```
+eval_conflict_error: functions must not produce multiple outputs for same inputs
+  policies/secretsmanager_privacy_transfer_governance.rego:117
+```
+
+This is a regression introduced by the same commit that added `Principal.AWS`-array support: the array form is the exact case the fix was intended to handle, but `principal_region` is a function (single-valued), so the array iteration breaks it at runtime.
+
+Suggested fix: make `principal_region` set-valued, e.g.
+
+```rego
+principal_regions(principal_entry) := regions if {
+    allow_effect(principal_entry)
+    regions := {r |
+        arn := principal_values(principal_entry)[_]
+        acct := principal_account_id_from_value(arn)
+        r := object.get(data.account_id_to_region, acct, "")
+        r != ""
+    }
+}
+```
+
+then in the first `cross_border_principal_undocumented` rule iterate `region := principal_regions(principal)[_]` and check it against `allowed_pi_transfer_regions`. Add a regression test with a `{"AWS": [...]}` array of ARNs in two different mapped accounts.
+Implementation guidance: In policies/secretsmanager_access_administration_events.rego, replace the six complete-function bodies event_secret_id(event) := id with a single set-valued helper such as event_secret_ids(event) := ids. Build ids as the union of all non-empty candidate IDs from event.secret_arn, event.request_parameters.secret_arn, event.request_parameters.secret_id, event.requestParameters.secretArn, event.requestParameters.secretId, and each event.resources[_].ARN/arn. Then change event_matches_secret(event) to check membership with event_secret_ids(event)[secret_arn] instead of event_secret_id(event) == secret_arn. Keep the helper local to this flat policy package; do not introduce a shared Rego package. Add a regression test where one CloudTrail admin event has both requestParameters.secretId set to a short name and resources[0].ARN set to the full secret_arn, and assert evaluation succeeds and the event matches without eval_conflict_error.
+Implementation guidance: In policies/secretsmanager_confidential_disposal_record.rego, make the same local change as the access-administration policy: replace the six event_secret_id(event) := id complete-function bodies with a set-valued event_secret_ids(event) := ids helper that unions all non-empty candidate IDs from snake_case request_parameters, camelCase requestParameters, and resources[].ARN/arn. Update event_matches_secret(event) to use event_secret_ids(event)[secret_arn]. Do not share the helper across packages. Add a regression test with a DeleteSecret event containing both requestParameters.secretId and resources[0].ARN for the same secret, and assert delete_secret_events is evaluable and the disposal-record violations remain reachable.
+Implementation guidance: In policies/secretsmanager_privacy_transfer_governance.rego, replace the single-valued principal_region(principal_entry) := region helper with a set-valued principal_regions(principal_entry) := regions helper. The helper should require allow_effect(principal_entry), iterate arn := principal_values(principal_entry)[_], derive principal_account := principal_account_id_from_value(arn), look up region := object.get(data.account_id_to_region, principal_account, ""), and include only non-empty regions in the returned set. Update the first violation[{"id": "cross_border_principal_undocumented"}] rule to use region := principal_regions(principal)[_] and check not allowed_pi_transfer_regions[region]. Keep the existing count(data.account_id_to_region) > 0 gate and the second account-id fallback rule unchanged except for any formatting needed. Add a regression test with Principal.AWS as an array of two ARNs mapped to different regions so evaluation succeeds and reports only regions outside data.allowed_pi_transfer_regions.
