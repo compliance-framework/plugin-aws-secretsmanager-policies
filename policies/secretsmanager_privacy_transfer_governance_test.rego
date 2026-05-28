@@ -73,6 +73,18 @@ test_bare_account_principals if {
 	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as cross with data.account_id_to_region as {"999999999999": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
 }
 
+test_unmapped_cross_account_principal_fails if {
+	bare_cross := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "999999999999"}])
+	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as bare_cross with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+	arn_cross := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "arn:aws:iam::999999999999:role/vendor"}])
+	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as arn_cross with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+}
+
+test_unmapped_same_account_principal_passes if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "123456789012"}])
+	count(policy.violation) == 0 with input as inp with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+}
+
 test_deny_principals_do_not_emit_scope_violations if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "999999999999"}, {"op": "replace", "path": "/config/resource_policy/principals/0/effect", "value": "Deny"}])
 	count(policy.violation) == 0 with input as inp with data.account_id_to_region as {"999999999999": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]

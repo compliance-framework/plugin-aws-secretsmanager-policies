@@ -57,6 +57,18 @@ test_never if {
 	policy.violation[{"id": "vendor_rotation_never_executed"}] with input as inp
 }
 
+test_service_linked_never_rotated_skipped if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/owning_service", "value": "rds.amazonaws.com"}, {"op": "replace", "path": "/config/last_rotated_date", "value": ""}])
+	not policy.violation[{"id": "vendor_rotation_never_executed"}] with input as inp
+	policy.skip_reason with input as inp
+}
+
+test_service_linked_stale_rotation_skipped if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/owning_service", "value": "rds.amazonaws.com"}])
+	not policy.violation[{"id": "vendor_rotation_stale"}] with input as inp with time.now_ns as 1811808000000000000
+	policy.skip_reason with input as inp with time.now_ns as 1811808000000000000
+}
+
 test_allowed_unrotated if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/last_rotated_date", "value": ""}])
 	count(policy.violation) == 0 with input as inp with data.allowed_unrotated_vendor_arns as [base_secret.config.secret_arn]

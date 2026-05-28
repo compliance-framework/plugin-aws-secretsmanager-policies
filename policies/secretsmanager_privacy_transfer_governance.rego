@@ -149,3 +149,15 @@ violation[{"id": "cross_border_principal_undocumented"}] if {
 	region := principal_region(principal)
 	not allowed_pi_transfer_regions[region]
 }
+
+violation[{"id": "cross_border_principal_undocumented"}] if {
+	resource_type == "secret"
+	is_pi_secret
+	resource_policy_present
+	count(data.account_id_to_region) > 0
+	principal := principals[_]
+	allow_effect(principal)
+	principal_account := principal_account_id(principal)
+	principal_account != account_id
+	object.get(data.account_id_to_region, principal_account, "") == ""
+}

@@ -65,6 +65,12 @@ skip_reason := sprintf("Secret %s is not vendor-scoped; this policy applies only
 	not is_vendor_secret
 }
 
+skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); rotation is AWS-managed.", [secret_arn, owning_service]) if {
+	resource_type == "secret"
+	is_vendor_secret
+	is_service_linked
+}
+
 rotation_enabled := object.get(config, "rotation_enabled", false)
 last_rotated_date := object.get(config, "last_rotated_date", "")
 allowed_unrotated_vendor_arns := {arn | arn := data.allowed_unrotated_vendor_arns[_]}
@@ -84,6 +90,7 @@ description := sprintf("Secret %s last_rotated_date=%q.", [secret_arn, last_rota
 violation[{"id": "vendor_rotation_never_executed"}] if {
 	resource_type == "secret"
 	is_vendor_secret
+	not is_service_linked
 	not allowed_unrotated_vendor
 	rotation_enabled
 	last_rotated_date == ""
@@ -92,6 +99,7 @@ violation[{"id": "vendor_rotation_never_executed"}] if {
 violation[{"id": "vendor_rotation_stale"}] if {
 	resource_type == "secret"
 	is_vendor_secret
+	not is_service_linked
 	not allowed_unrotated_vendor
 	last_rotated_date != ""
 	days_since_rotation > data.vendor_rotation_max_days

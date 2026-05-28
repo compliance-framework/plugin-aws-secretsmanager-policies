@@ -151,6 +151,7 @@ violation[{"id": "rotation_disabled"}] if {
 violation[{"id": "rotation_overdue"}] if {
 	resource_type == "secret"
 	is_pi_secret
+	not is_service_linked
 	rotation_enabled
 	last_rotated_date != ""
 	days_since_rotation > data.pi_rotation_max_days

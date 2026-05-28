@@ -65,6 +65,12 @@ skip_reason := sprintf("Secret %s is not confidentiality-classified; this policy
 	not is_confidential
 }
 
+skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); rotation is AWS-managed.", [secret_arn, owning_service]) if {
+	resource_type == "secret"
+	is_confidential
+	is_service_linked
+}
+
 rotation_enabled := object.get(config, "rotation_enabled", false)
 rotation_rules := object.get(config, "rotation_rules", {})
 automatically_after_days := object.get(rotation_rules, "automatically_after_days", null)
@@ -81,6 +87,7 @@ violation[{"id": "rotation_disabled"}] if {
 violation[{"id": "rotation_cadence_too_long"}] if {
 	resource_type == "secret"
 	is_confidential
+	not is_service_linked
 	rotation_enabled
 	automatically_after_days != null
 	automatically_after_days > data.max_confidential_rotation_days

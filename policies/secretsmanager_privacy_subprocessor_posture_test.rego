@@ -68,6 +68,13 @@ test_kms_rotation_wildcard if {
 
 test_rotation_overdue if policy.violation[{"id": "rotation_overdue"}] with input as base_secret with time.now_ns as 1796083200000000000
 
+test_service_linked_rotation_overdue_skipped_but_other_pi_checks_run if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/owning_service", "value": "rds.amazonaws.com"}, {"op": "replace", "path": "/config/kms_key_id", "value": "aws/secretsmanager"}, {"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "*"}])
+	not policy.violation[{"id": "rotation_overdue"}] with input as inp with time.now_ns as 1796083200000000000
+	policy.violation[{"id": "aws_managed_default_kms_key"}] with input as inp with time.now_ns as 1796083200000000000
+	policy.violation[{"id": "principal_wildcard"}] with input as inp with time.now_ns as 1796083200000000000
+}
+
 test_role_and_action_checks if {
 	policy.violation[{"id": "vendor_integration_role_not_documented"}] with input as base_secret
 	policy.violation[{"id": "principal_outside_integration_role_set"}] with input as base_secret with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/other"]}
