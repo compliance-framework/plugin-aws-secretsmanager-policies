@@ -77,6 +77,12 @@ test_wildcard_in_aws_principal_array if {
 	policy.violation[{"id": "principal_wildcard"}] with input as inp
 }
 
+test_wildcard_not_reported_outside_integration_role_set if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "*"}])
+	policy.violation[{"id": "principal_wildcard"}] with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]}
+	not policy.violation[{"id": "principal_outside_integration_role_set"}] with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]}
+}
+
 test_rotation_overdue if policy.violation[{"id": "rotation_overdue"}] with input as base_secret with time.now_ns as 1796083200000000000
 
 test_service_linked_rotation_overdue_skipped_but_other_pi_checks_run if {

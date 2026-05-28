@@ -99,6 +99,7 @@ violation[{"id": "cross_account_principal_undocumented"}] if {
 	resource_policy_present
 	principal := principals[_]
 	allow_effect(principal)
+	account_id != ""
 	arn := principal_values(principal)[_]
 	principal_account := principal_account_id_from_value(arn)
 	principal_account != account_id

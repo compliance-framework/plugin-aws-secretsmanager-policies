@@ -129,6 +129,7 @@ violation[{"id": "cross_account_principal"}] if {
 	resource_policy_present
 	principal := principals[_]
 	allow_effect(principal)
+	account_id != ""
 	arn := principal_values(principal)[_]
 	principal_account := principal_account_id_from_value(arn)
 	principal_account != account_id
@@ -141,6 +142,7 @@ violation[{"id": "principal_outside_cleared_role_set"}] if {
 	count(data.cleared_principal_arns) > 0
 	principal := principals[_]
 	allow_effect(principal)
+	not principal_is_wildcard(principal)
 	arn := principal_values(principal)[_]
 	not cleared_principal_arns[arn]
 }

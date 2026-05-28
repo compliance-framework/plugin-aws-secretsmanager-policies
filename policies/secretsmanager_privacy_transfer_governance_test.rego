@@ -85,6 +85,11 @@ test_unmapped_cross_account_principal_fails if {
 	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as arn_cross with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
 }
 
+test_unmapped_cross_account_principal_skipped_when_account_id_missing if {
+	inp := json.patch(base_secret, [{"op": "remove", "path": "/account/account_id"}, {"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "arn:aws:iam::999999999999:role/vendor"}])
+	not policy.violation[{"id": "cross_border_principal_undocumented"}] with input as inp with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+}
+
 test_unmapped_same_account_principal_passes if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "123456789012"}])
 	count(policy.violation) == 0 with input as inp with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]

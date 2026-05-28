@@ -155,6 +155,7 @@ violation[{"id": "vendor_principal_cross_account_undocumented"}] if {
 	resource_policy_present
 	principal := principals[_]
 	allow_effect(principal)
+	account_id != ""
 	principal_account := principal_account_id(principal)
 	principal_account != account_id
 	not allowed_vendor_partner_accounts[principal_account]

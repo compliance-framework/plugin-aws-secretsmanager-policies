@@ -67,6 +67,11 @@ test_cross_account_fails_and_allow_list_passes if {
 	count(policy.violation) == 0 with input as inp with data.allowed_cross_account_principals as ["999999999999"]
 }
 
+test_cross_account_skipped_when_account_id_missing if {
+	inp := json.patch(base_secret, [{"op": "remove", "path": "/account/account_id"}, {"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "arn:aws:iam::999999999999:role/x"}])
+	not policy.violation[{"id": "cross_account_principal_undocumented"}] with input as inp
+}
+
 test_cross_account_in_aws_principal_array_fails if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": {"AWS": ["999999999999"]}}])
 	policy.violation[{"id": "cross_account_principal_undocumented"}] with input as inp

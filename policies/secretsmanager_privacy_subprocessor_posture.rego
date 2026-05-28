@@ -190,6 +190,7 @@ violation[{"id": "principal_outside_integration_role_set"}] if {
 	vendor_documented
 	principal := principals[_]
 	allow_effect(principal)
+	not principal_is_wildcard(principal)
 	arn := principal_values(principal)[_]
 	not documented_roles_for_vendor_set[arn]
 }

@@ -72,6 +72,11 @@ test_cross_account if {
 	count(policy.violation) == 0 with input as inp with data.allowed_vendor_partner_accounts as ["999999999999"]
 }
 
+test_cross_account_skipped_when_account_id_missing if {
+	inp := json.patch(base_secret, [{"op": "remove", "path": "/account/account_id"}, {"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "arn:aws:iam::999999999999:role/vendor"}, {"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": ["secretsmanager:GetSecretValue"]}])
+	not policy.violation[{"id": "vendor_principal_cross_account_undocumented"}] with input as inp
+}
+
 test_bare_account_principals if {
 	same := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "123456789012"}, {"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": ["secretsmanager:GetSecretValue"]}])
 	count(policy.violation) == 0 with input as same

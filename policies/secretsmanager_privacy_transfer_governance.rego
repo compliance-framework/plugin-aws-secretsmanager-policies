@@ -156,6 +156,7 @@ violation[{"id": "cross_border_principal_undocumented"}] if {
 	count(data.account_id_to_region) > 0
 	principal := principals[_]
 	allow_effect(principal)
+	account_id != ""
 	arn := principal_values(principal)[_]
 	principal_account := principal_account_id_from_value(arn)
 	principal_account != account_id
