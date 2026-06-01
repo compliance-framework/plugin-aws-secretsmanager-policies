@@ -61,6 +61,12 @@ test_allow_list_passes if {
 	count(policy.violation) == 0 with input as inp with data.allow_aws_managed_default_kms_for_arns as [base_secret.config.secret_arn]
 }
 
+test_pending_deletion_skips_default_kms_evidence if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}, {"op": "replace", "path": "/config/kms_key_id", "value": "aws/secretsmanager"}])
+	count(policy.violation) == 0 with input as inp
+	policy.skip_reason with input as inp
+}
+
 test_non_secret_record_skipped if {
 	count(policy.violation) == 0 with input as {"resource": {"type": "loadbalancer"}}
 }

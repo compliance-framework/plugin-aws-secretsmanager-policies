@@ -62,6 +62,12 @@ test_service_linked_skipped if {
 	policy.skip_reason == sprintf("Secret %s is service-linked (owning_service=%q); rotation is AWS-managed.", [base_secret.config.secret_arn, "rds.amazonaws.com"]) with input as inp
 }
 
+test_pending_deletion_skipped if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}, {"op": "replace", "path": "/config/rotation_enabled", "value": false}])
+	count(policy.violation) == 0 with input as inp
+	policy.skip_reason with input as inp
+}
+
 test_non_secret_record_skipped if {
 	count(policy.violation) == 0 with input as {"resource": {"type": "loadbalancer"}}
 }

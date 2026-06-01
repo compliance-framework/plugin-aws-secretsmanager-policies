@@ -1,5 +1,7 @@
 package compliance_framework.secretsmanager_rotation_timeliness
 
+import data.ccf_libs.secretsmanager_common as secretsmanager_common
+
 # METADATA
 # title: Secrets Manager secret rotation is timely
 # description: Checks whether enabled rotation has executed within the configured cadence plus grace multiplier.
@@ -26,6 +28,7 @@ account := object.get(input, "account", {})
 resource_type := object.get(resource, "type", "")
 secret_arn := object.get(config, "secret_arn", object.get(resource, "arn", "unknown"))
 owning_service := object.get(config, "owning_service", "")
+pending_deletion if secretsmanager_common.pending_deletion(input)
 
 is_service_linked if {
 	owning_service != ""
@@ -35,13 +38,20 @@ skip_reason := sprintf("Resource type %q is not a secret; this policy only appli
 	resource_type != "secret"
 }
 
+skip_reason := secretsmanager_common.pending_deletion_skip_reason(input) if {
+	resource_type == "secret"
+	pending_deletion
+}
+
 skip_reason := sprintf("Secret %s does not have rotation enabled; rotation configuration is covered by secretsmanager_rotation_configured.", [secret_arn]) if {
 	resource_type == "secret"
+	not pending_deletion
 	not rotation_enabled
 }
 
 skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); rotation is AWS-managed.", [secret_arn, owning_service]) if {
 	resource_type == "secret"
+	not pending_deletion
 	is_service_linked
 }
 
@@ -88,6 +98,7 @@ rotation_deadline_days := effective_rotation_days * data.rotation_grace_multipli
 
 skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%q; collector must provide a normalized day cadence.", [secret_arn, schedule_expression]) if {
 	resource_type == "secret"
+	not pending_deletion
 	rotation_enabled
 	not is_service_linked
 	last_rotated_date != ""
@@ -98,6 +109,7 @@ skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%
 
 skip_reason := sprintf("Secret %s is missing rotation cadence; collector must provide automatically_after_days or a supported schedule_expression.", [secret_arn]) if {
 	resource_type == "secret"
+	not pending_deletion
 	rotation_enabled
 	not is_service_linked
 	last_rotated_date != ""
@@ -111,6 +123,7 @@ description := sprintf("Secret %s last_rotated_date=%q and automatically_after_d
 
 violation[{"id": "rotation_never_executed"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	not is_service_linked
 	rotation_enabled
 	last_rotated_date == ""
@@ -118,6 +131,7 @@ violation[{"id": "rotation_never_executed"}] if {
 
 violation[{"id": "rotation_overdue"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	not is_service_linked
 	rotation_enabled
 	last_rotated_date != ""

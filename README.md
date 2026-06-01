@@ -50,6 +50,8 @@ Every policy skips non-`secret` records through `skip_reason`. Vendor policies a
 
 Service-linked secrets (`config.owning_service != ""`) are skipped from rotation and admin-policy checks where AWS owns those operations, but are still evaluated for KMS, replication, and applicable tag posture.
 
+Pending-deletion secrets (`config.deleted_date != ""`) are skipped from steady-state posture checks where configuration or subresource evidence may no longer be observable. Deletion and disposal controls still evaluate pending-deletion secrets, and administration-event evidence treats `DeleteSecret` and `RestoreSecret` as administrative events.
+
 ## Policies
 
 | Applicability | Package | Controls |

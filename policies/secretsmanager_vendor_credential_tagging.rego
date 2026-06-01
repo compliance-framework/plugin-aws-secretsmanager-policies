@@ -1,5 +1,7 @@
 package compliance_framework.secretsmanager_vendor_credential_tagging
 
+import data.ccf_libs.secretsmanager_common as secretsmanager_common
+
 # METADATA
 # title: Secrets Manager vendor credential tags are complete
 # description: Checks vendor-scoped secrets for required vendor identification tags.
@@ -24,6 +26,7 @@ account := object.get(input, "account", {})
 resource_type := object.get(resource, "type", "")
 secret_arn := object.get(config, "secret_arn", object.get(resource, "arn", "unknown"))
 owning_service := object.get(config, "owning_service", "")
+pending_deletion if secretsmanager_common.pending_deletion(input)
 
 is_service_linked if {
 	owning_service != ""
@@ -31,6 +34,11 @@ is_service_linked if {
 
 skip_reason := sprintf("Resource type %q is not a secret; this policy only applies to secret records.", [resource_type]) if {
 	resource_type != "secret"
+}
+
+skip_reason := secretsmanager_common.pending_deletion_skip_reason(input) if {
+	resource_type == "secret"
+	pending_deletion
 }
 
 tags := object.get(input, "tags", {})
@@ -61,6 +69,7 @@ is_pi_secret if {
 
 skip_reason := sprintf("Secret %s is not vendor-scoped; this policy applies only to IntegrationType=vendor or VendorId-tagged secrets.", [secret_arn]) if {
 	resource_type == "secret"
+	not pending_deletion
 	not is_vendor_secret
 }
 
@@ -75,12 +84,14 @@ require_integration_type_tag := false if {
 
 violation[{"id": "vendor_id_tag_missing"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	is_vendor_secret
 	vendor_id == ""
 }
 
 violation[{"id": "integration_type_tag_missing"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	is_vendor_secret
 	require_integration_type_tag
 	vendor_id != ""

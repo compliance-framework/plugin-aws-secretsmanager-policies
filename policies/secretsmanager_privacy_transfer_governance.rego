@@ -1,5 +1,7 @@
 package compliance_framework.secretsmanager_privacy_transfer_governance
 
+import data.ccf_libs.secretsmanager_common as secretsmanager_common
+
 # METADATA
 # title: Secrets Manager PI transfer governance is documented
 # description: Checks privacy-scoped secrets for data-subject flow registration and approved transfer regions.
@@ -25,6 +27,7 @@ account := object.get(input, "account", {})
 resource_type := object.get(resource, "type", "")
 secret_arn := object.get(config, "secret_arn", object.get(resource, "arn", "unknown"))
 owning_service := object.get(config, "owning_service", "")
+pending_deletion if secretsmanager_common.pending_deletion(input)
 
 is_service_linked if {
 	owning_service != ""
@@ -32,6 +35,11 @@ is_service_linked if {
 
 skip_reason := sprintf("Resource type %q is not a secret; this policy only applies to secret records.", [resource_type]) if {
 	resource_type != "secret"
+}
+
+skip_reason := secretsmanager_common.pending_deletion_skip_reason(input) if {
+	resource_type == "secret"
+	pending_deletion
 }
 
 tags := object.get(input, "tags", {})
@@ -62,6 +70,7 @@ is_pi_secret if {
 
 skip_reason := sprintf("Secret %s is not privacy-scoped; this policy applies only to configured PrivacyScope values.", [secret_arn]) if {
 	resource_type == "secret"
+	not pending_deletion
 	not is_pi_secret
 }
 
@@ -129,12 +138,14 @@ description := sprintf("Secret %s DataSubjectFlow=%q.", [secret_arn, data_subjec
 
 violation[{"id": "data_subject_flow_tag_missing"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	is_pi_secret
 	data_subject_flow == ""
 }
 
 violation[{"id": "data_subject_flow_not_in_register"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	is_pi_secret
 	data_subject_flow != ""
 	count(data.documented_data_subject_flows) > 0
@@ -143,6 +154,7 @@ violation[{"id": "data_subject_flow_not_in_register"}] if {
 
 violation[{"id": "cross_border_principal_undocumented"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	is_pi_secret
 	resource_policy_present
 	count(data.account_id_to_region) > 0
@@ -153,6 +165,7 @@ violation[{"id": "cross_border_principal_undocumented"}] if {
 
 violation[{"id": "cross_border_principal_undocumented"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	is_pi_secret
 	resource_policy_present
 	count(data.account_id_to_region) > 0

@@ -1,5 +1,7 @@
 package compliance_framework.secretsmanager_resource_policy_least_privilege
 
+import data.ccf_libs.secretsmanager_common as secretsmanager_common
+
 # METADATA
 # title: Secrets Manager resource policy uses least-privilege principals
 # description: Checks secret resource policies for wildcard and undocumented cross-account principals.
@@ -28,6 +30,7 @@ account := object.get(input, "account", {})
 resource_type := object.get(resource, "type", "")
 secret_arn := object.get(config, "secret_arn", object.get(resource, "arn", "unknown"))
 owning_service := object.get(config, "owning_service", "")
+pending_deletion if secretsmanager_common.pending_deletion(input)
 
 is_service_linked if {
 	owning_service != ""
@@ -35,6 +38,11 @@ is_service_linked if {
 
 skip_reason := sprintf("Resource type %q is not a secret; this policy only applies to secret records.", [resource_type]) if {
 	resource_type != "secret"
+}
+
+skip_reason := secretsmanager_common.pending_deletion_skip_reason(input) if {
+	resource_type == "secret"
+	pending_deletion
 }
 
 principals := object.get(object.get(config, "resource_policy", {}), "principals", [])
@@ -88,6 +96,7 @@ description := sprintf("Secret %s resource_policy_present=%v.", [secret_arn, res
 
 violation[{"id": "wildcard_principal"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	resource_policy_present
 	principal := principals[_]
 	allow_effect(principal)
@@ -96,6 +105,7 @@ violation[{"id": "wildcard_principal"}] if {
 
 violation[{"id": "cross_account_principal_undocumented"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	resource_policy_present
 	principal := principals[_]
 	allow_effect(principal)

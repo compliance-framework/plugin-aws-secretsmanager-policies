@@ -1,5 +1,7 @@
 package compliance_framework.secretsmanager_kms_customer_managed
 
+import data.ccf_libs.secretsmanager_common as secretsmanager_common
+
 # METADATA
 # title: Secrets Manager secret uses a customer-managed KMS key
 # description: Checks whether the secret avoids the AWS-managed aws/secretsmanager default key unless explicitly allowed.
@@ -27,6 +29,7 @@ account := object.get(input, "account", {})
 resource_type := object.get(resource, "type", "")
 secret_arn := object.get(config, "secret_arn", object.get(resource, "arn", "unknown"))
 owning_service := object.get(config, "owning_service", "")
+pending_deletion if secretsmanager_common.pending_deletion(input)
 
 is_service_linked if {
 	owning_service != ""
@@ -34,6 +37,11 @@ is_service_linked if {
 
 skip_reason := sprintf("Resource type %q is not a secret; this policy only applies to secret records.", [resource_type]) if {
 	resource_type != "secret"
+}
+
+skip_reason := secretsmanager_common.pending_deletion_skip_reason(input) if {
+	resource_type == "secret"
+	pending_deletion
 }
 
 kms_key_id := object.get(config, "kms_key_id", "")
@@ -44,6 +52,7 @@ description := sprintf("Secret %s uses kms_key_id=%q.", [secret_arn, kms_key_id]
 
 violation[{"id": "aws_managed_default_kms_key"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	kms_key_id == "aws/secretsmanager"
 	not allowed_aws_managed_default_kms
 }

@@ -1,5 +1,7 @@
 package compliance_framework.secretsmanager_confidential_rotation_required
 
+import data.ccf_libs.secretsmanager_common as secretsmanager_common
+
 # METADATA
 # title: Secrets Manager confidential secret rotation is required
 # description: Checks confidentiality-classified secrets for enabled rotation and a strict rotation cadence.
@@ -25,6 +27,7 @@ account := object.get(input, "account", {})
 resource_type := object.get(resource, "type", "")
 secret_arn := object.get(config, "secret_arn", object.get(resource, "arn", "unknown"))
 owning_service := object.get(config, "owning_service", "")
+pending_deletion if secretsmanager_common.pending_deletion(input)
 
 is_service_linked if {
 	owning_service != ""
@@ -32,6 +35,11 @@ is_service_linked if {
 
 skip_reason := sprintf("Resource type %q is not a secret; this policy only applies to secret records.", [resource_type]) if {
 	resource_type != "secret"
+}
+
+skip_reason := secretsmanager_common.pending_deletion_skip_reason(input) if {
+	resource_type == "secret"
+	pending_deletion
 }
 
 tags := object.get(input, "tags", {})
@@ -62,11 +70,13 @@ is_pi_secret if {
 
 skip_reason := sprintf("Secret %s is not confidentiality-classified; this policy applies only to configured DataClassification values.", [secret_arn]) if {
 	resource_type == "secret"
+	not pending_deletion
 	not is_confidential
 }
 
 skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); rotation is AWS-managed.", [secret_arn, owning_service]) if {
 	resource_type == "secret"
+	not pending_deletion
 	is_confidential
 	is_service_linked
 }
@@ -103,6 +113,7 @@ effective_rotation_days := schedule_rate_days if {
 
 skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%q; collector must provide a normalized day cadence.", [secret_arn, schedule_expression]) if {
 	resource_type == "secret"
+	not pending_deletion
 	is_confidential
 	not is_service_linked
 	rotation_enabled
@@ -115,6 +126,7 @@ description := sprintf("Secret %s rotation_enabled=%v automatically_after_days=%
 
 violation[{"id": "rotation_disabled"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	is_confidential
 	not is_service_linked
 	not rotation_enabled
@@ -122,6 +134,7 @@ violation[{"id": "rotation_disabled"}] if {
 
 violation[{"id": "rotation_cadence_too_long"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	is_confidential
 	not is_service_linked
 	rotation_enabled

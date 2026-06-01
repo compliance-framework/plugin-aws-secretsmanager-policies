@@ -95,6 +95,16 @@ test_admin_event_with_short_secret_id_and_resource_arn_matches if {
 	not policy.violation[{"id": "admin_event_unattributable"}] with input as inp with data.require_admin_audit_events as true
 }
 
+test_delete_and_restore_secret_events_are_admin_evidence if {
+	delete_event := {"event_name": "DeleteSecret", "event_time": "2026-05-02T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin", "requestParameters": {"secretId": base_secret.config.secret_arn}}
+	delete_input := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": [delete_event]}])
+	not policy.violation[{"id": "admin_events_missing"}] with input as delete_input with data.require_admin_audit_events as true
+
+	restore_event := {"event_name": "RestoreSecret", "event_time": "2026-05-03T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin", "requestParameters": {"secretId": base_secret.config.secret_arn}}
+	restore_input := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": [restore_event]}])
+	not policy.violation[{"id": "admin_events_missing"}] with input as restore_input with data.require_admin_audit_events as true
+}
+
 test_non_secret_record_skipped if {
 	count(policy.violation) == 0 with input as {"resource": {"type": "loadbalancer"}}
 }
