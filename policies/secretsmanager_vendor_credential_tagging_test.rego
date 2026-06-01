@@ -67,3 +67,9 @@ test_non_vendor_skipped if {
 	count(policy.violation) == 0 with input as inp
 	policy.skip_reason with input as inp
 }
+
+test_pending_deletion_skip_takes_precedence_over_scope_skip if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}, {"op": "replace", "path": "/tags/IntegrationType", "value": "internal"}, {"op": "replace", "path": "/tags/VendorId", "value": ""}])
+	count(policy.violation) == 0 with input as inp
+	policy.skip_reason == sprintf("Secret %s is pending deletion (deleted_date=%q); steady-state posture is not evaluated for secrets scheduled for deletion.", [base_secret.config.secret_arn, "2026-05-20T00:00:00Z"]) with input as inp
+}

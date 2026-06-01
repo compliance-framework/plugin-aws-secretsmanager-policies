@@ -1,5 +1,7 @@
 package compliance_framework.secretsmanager_replication_in_sync
 
+import data.ccf_libs.secretsmanager_common as secretsmanager_common
+
 # METADATA
 # title: Secrets Manager replication status is healthy
 # description: Checks replica regions for failed replication states while skipping unknown future statuses.
@@ -25,6 +27,7 @@ account := object.get(input, "account", {})
 resource_type := object.get(resource, "type", "")
 secret_arn := object.get(config, "secret_arn", object.get(resource, "arn", "unknown"))
 owning_service := object.get(config, "owning_service", "")
+pending_deletion if secretsmanager_common.pending_deletion(input)
 
 is_service_linked if {
 	owning_service != ""
@@ -34,12 +37,18 @@ skip_reason := sprintf("Resource type %q is not a secret; this policy only appli
 	resource_type != "secret"
 }
 
+skip_reason := secretsmanager_common.pending_deletion_skip_reason(input) if {
+	resource_type == "secret"
+	pending_deletion
+}
+
 recognized_replication_states := {"InSync", "InProgress", "Failed"}
 replication_status := object.get(config, "replication_status", [])
 unrecognized_replication_statuses := {status | entry := replication_status[_]; status := object.get(entry, "status", ""); status != ""; not recognized_replication_states[status]}
 
 skip_reason := sprintf("Secret %s has unrecognized replication status values %v; unknown statuses are skipped for forward compatibility.", [secret_arn, unrecognized_replication_statuses]) if {
 	resource_type == "secret"
+	not pending_deletion
 	count(unrecognized_replication_statuses) > 0
 }
 
@@ -48,6 +57,7 @@ description := sprintf("Secret %s replication_status entries are evaluated for F
 
 violation[{"id": "replication_failed"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	entry := replication_status[_]
 	object.get(entry, "status", "") == "Failed"
 }

@@ -17,6 +17,8 @@
   "admin_event_names": [
     "PutResourcePolicy",
     "DeleteResourcePolicy",
+    "DeleteSecret",
+    "RestoreSecret",
     "RotateSecret",
     "UpdateSecret",
     "UpdateSecretVersionStage",

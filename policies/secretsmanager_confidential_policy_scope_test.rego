@@ -104,3 +104,9 @@ test_wildcard_not_reported_outside_cleared_role_set if {
 	policy.violation[{"id": "wildcard_principal"}] with input as inp with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"]
 	not policy.violation[{"id": "principal_outside_cleared_role_set"}] with input as inp with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"]
 }
+
+test_pending_deletion_skips_confidential_policy_scope if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}, {"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "*"}])
+	count(policy.violation) == 0 with input as inp
+	policy.skip_reason with input as inp
+}

@@ -88,3 +88,9 @@ test_non_confidential_skipped if {
 	count(policy.violation) == 0 with input as inp
 	policy.skip_reason with input as inp
 }
+
+test_pending_deletion_skip_takes_precedence_over_confidential_scope_skip if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}, {"op": "replace", "path": "/tags/DataClassification", "value": "internal"}, {"op": "replace", "path": "/config/rotation_enabled", "value": false}])
+	count(policy.violation) == 0 with input as inp
+	policy.skip_reason == sprintf("Secret %s is pending deletion (deleted_date=%q); steady-state posture is not evaluated for secrets scheduled for deletion.", [base_secret.config.secret_arn, "2026-05-20T00:00:00Z"]) with input as inp
+}

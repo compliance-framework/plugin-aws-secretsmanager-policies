@@ -78,3 +78,9 @@ test_allowed_unrotated if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/last_rotated_date", "value": ""}])
 	count(policy.violation) == 0 with input as inp with data.allowed_unrotated_vendor_arns as [base_secret.config.secret_arn]
 }
+
+test_pending_deletion_skips_vendor_rotation_evidence if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}, {"op": "replace", "path": "/config/last_rotated_date", "value": ""}])
+	count(policy.violation) == 0 with input as inp
+	policy.skip_reason with input as inp
+}

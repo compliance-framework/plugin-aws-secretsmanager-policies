@@ -1,5 +1,7 @@
 package compliance_framework.secretsmanager_admin_principal_present
 
+import data.ccf_libs.secretsmanager_common as secretsmanager_common
+
 # METADATA
 # title: Secrets Manager resource policy identifies an administrative principal
 # description: Checks present resource policies for at least one configured administrative Secrets Manager action.
@@ -25,6 +27,7 @@ resource := object.get(input, "resource", {})
 resource_type := object.get(resource, "type", "")
 secret_arn := object.get(config, "secret_arn", object.get(resource, "arn", "unknown"))
 owning_service := object.get(config, "owning_service", "")
+pending_deletion if secretsmanager_common.pending_deletion(input)
 
 is_service_linked if {
 	owning_service != ""
@@ -34,8 +37,14 @@ skip_reason := sprintf("Resource type %q is not a secret; this policy only appli
 	resource_type != "secret"
 }
 
+skip_reason := secretsmanager_common.pending_deletion_skip_reason(input) if {
+	resource_type == "secret"
+	pending_deletion
+}
+
 skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); administration is AWS-managed.", [secret_arn, owning_service]) if {
 	resource_type == "secret"
+	not pending_deletion
 	is_service_linked
 }
 
@@ -73,6 +82,7 @@ description := sprintf("Secret %s resource_policy_present=%v.", [secret_arn, res
 
 violation[{"id": "admin_principal_missing"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	not is_service_linked
 	resource_policy_present
 	not admin_principal_present

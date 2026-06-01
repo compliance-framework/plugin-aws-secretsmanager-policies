@@ -102,6 +102,12 @@ test_disabled_skipped if {
 	count(policy.violation) == 0 with input as inp with time.now_ns as 1782864000000000000
 }
 
+test_pending_deletion_skips_rotation_timeliness_evidence if {
+	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}, {"op": "replace", "path": "/config/last_rotated_date", "value": ""}])
+	count(policy.violation) == 0 with input as inp with time.now_ns as 1782864000000000000
+	policy.skip_reason with input as inp
+}
+
 test_non_secret_record_skipped if {
 	count(policy.violation) == 0 with input as {"resource": {"type": "loadbalancer"}}
 }

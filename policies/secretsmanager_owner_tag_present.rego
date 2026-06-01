@@ -1,5 +1,7 @@
 package compliance_framework.secretsmanager_owner_tag_present
 
+import data.ccf_libs.secretsmanager_common as secretsmanager_common
+
 # METADATA
 # title: Secrets Manager secret has an owner tag
 # description: Checks that customer-owned secrets carry at least one configured owner tag key with a non-empty value.
@@ -26,6 +28,7 @@ account := object.get(input, "account", {})
 resource_type := object.get(resource, "type", "")
 secret_arn := object.get(config, "secret_arn", object.get(resource, "arn", "unknown"))
 owning_service := object.get(config, "owning_service", "")
+pending_deletion if secretsmanager_common.pending_deletion(input)
 
 is_service_linked if {
 	owning_service != ""
@@ -35,10 +38,16 @@ skip_reason := sprintf("Resource type %q is not a secret; this policy only appli
 	resource_type != "secret"
 }
 
+skip_reason := secretsmanager_common.pending_deletion_skip_reason(input) if {
+	resource_type == "secret"
+	pending_deletion
+}
+
 tags := object.get(input, "tags", {})
 
 skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); ownership is AWS-managed.", [secret_arn, owning_service]) if {
 	resource_type == "secret"
+	not pending_deletion
 	is_service_linked
 }
 
@@ -56,6 +65,7 @@ description := sprintf("Secret %s owner tag keys are checked case-insensitively.
 
 violation[{"id": "owner_tag_missing"}] if {
 	resource_type == "secret"
+	not pending_deletion
 	not is_service_linked
 	not owner_tag_present
 }
