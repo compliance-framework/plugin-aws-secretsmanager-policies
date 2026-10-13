@@ -49,13 +49,13 @@ is_vendor_secret if {
 	vendor_id != ""
 }
 
-confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]}
+confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]} # regal ignore:unresolved-reference
 
 is_confidential if {
 	confidential_classification_values[data_classification]
 }
 
-privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]}
+privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]} # regal ignore:unresolved-reference
 
 is_pi_secret if {
 	privacy_scope_values[privacy_scope]
@@ -109,7 +109,7 @@ description := sprintf("Secret %s has %v DeleteSecret events.", [secret_arn, cou
 violation[{"id": "disposal_authorisation_tag_missing"}] if {
 	resource_type == "secret"
 	is_confidential
-	data.require_disposal_record
+	data.require_disposal_record # regal ignore:unresolved-reference
 	count(delete_secret_events) > 0
 	disposal_authorisation == ""
 }
@@ -117,7 +117,7 @@ violation[{"id": "disposal_authorisation_tag_missing"}] if {
 violation[{"id": "disposal_event_unattributable"}] if {
 	resource_type == "secret"
 	is_confidential
-	data.require_disposal_record
+	data.require_disposal_record # regal ignore:unresolved-reference
 	event := delete_secret_events[_]
 	object.get(event, "user_identity_arn", "") == ""
 }
@@ -125,7 +125,7 @@ violation[{"id": "disposal_event_unattributable"}] if {
 violation[{"id": "unrecorded_administration"}] if {
 	resource_type == "secret"
 	is_confidential
-	data.require_disposal_record
+	data.require_disposal_record # regal ignore:unresolved-reference
 	deleted_date != ""
 	count(delete_secret_events) == 0
 }

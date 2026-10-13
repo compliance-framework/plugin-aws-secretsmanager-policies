@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_owner_tag_present
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager secret has an owner tag
@@ -51,7 +51,7 @@ skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); ownersh
 	is_service_linked
 }
 
-required_owner_tag_keys_normalized := {lower(k) | k := data.required_owner_tag_keys[_]}
+required_owner_tag_keys_normalized := {lower(k) | k := data.required_owner_tag_keys[_]} # regal ignore:unresolved-reference
 
 owner_tag_present if {
 	some key, value in tags

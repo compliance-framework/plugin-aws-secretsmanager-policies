@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_replication_in_sync
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager replication status is healthy

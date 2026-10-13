@@ -58,7 +58,7 @@ test_fail if {
 
 test_allow_list_passes if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/kms_key_id", "value": "aws/secretsmanager"}])
-	count(policy.violation) == 0 with input as inp with data.allow_aws_managed_default_kms_for_arns as [base_secret.config.secret_arn]
+	count(policy.violation) == 0 with input as inp with data.allow_aws_managed_default_kms_for_arns as [base_secret.config.secret_arn] # regal ignore:unresolved-reference
 }
 
 test_pending_deletion_skips_default_kms_evidence if {

@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_resource_policy_least_privilege
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager resource policy uses least-privilege principals
@@ -90,7 +90,7 @@ principal_account_id_from_value(arn) := principal_account if {
 }
 
 resource_policy_present := object.get(config, "resource_policy_present", false)
-allowed_cross_account_ids := {id | id := data.allowed_cross_account_principals[_]}
+allowed_cross_account_ids := {id | id := data.allowed_cross_account_principals[_]} # regal ignore:unresolved-reference
 title := sprintf("Validate resource policy principal scope for %s", [secret_arn])
 description := sprintf("Secret %s resource_policy_present=%v.", [secret_arn, resource_policy_present])
 

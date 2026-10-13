@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_kms_customer_managed
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager secret uses a customer-managed KMS key
@@ -45,7 +45,7 @@ skip_reason := secretsmanager_common.pending_deletion_skip_reason(input) if {
 }
 
 kms_key_id := object.get(config, "kms_key_id", "")
-allowed_aws_managed_default_kms_arns := {arn | arn := data.allow_aws_managed_default_kms_for_arns[_]}
+allowed_aws_managed_default_kms_arns := {arn | arn := data.allow_aws_managed_default_kms_for_arns[_]} # regal ignore:unresolved-reference
 allowed_aws_managed_default_kms if allowed_aws_managed_default_kms_arns[secret_arn]
 title := sprintf("Validate KMS key selection for %s", [secret_arn])
 description := sprintf("Secret %s uses kms_key_id=%q.", [secret_arn, kms_key_id])

@@ -51,7 +51,7 @@ base_secret := {
 
 test_pass if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": ["secretsmanager:GetSecretValue"]}])
-	count(policy.violation) == 0 with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]}
+	count(policy.violation) == 0 with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]} # regal ignore:unresolved-reference
 }
 
 test_vendor_id_missing if {
@@ -79,8 +79,8 @@ test_wildcard_in_aws_principal_array if {
 
 test_wildcard_not_reported_outside_integration_role_set if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "*"}])
-	policy.violation[{"id": "principal_wildcard"}] with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]}
-	not policy.violation[{"id": "principal_outside_integration_role_set"}] with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]}
+	policy.violation[{"id": "principal_wildcard"}] with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]} # regal ignore:unresolved-reference
+	not policy.violation[{"id": "principal_outside_integration_role_set"}] with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]} # regal ignore:unresolved-reference
 }
 
 test_rotation_overdue if policy.violation[{"id": "rotation_overdue"}] with input as base_secret with time.now_ns as 1796083200000000000
@@ -94,23 +94,23 @@ test_service_linked_rotation_overdue_skipped_but_other_pi_checks_run if {
 
 test_role_and_action_checks if {
 	policy.violation[{"id": "vendor_integration_role_not_documented"}] with input as base_secret
-	policy.violation[{"id": "principal_outside_integration_role_set"}] with input as base_secret with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/other"]}
-	policy.violation[{"id": "excess_actions"}] with input as base_secret with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]}
+	policy.violation[{"id": "principal_outside_integration_role_set"}] with input as base_secret with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/other"]} # regal ignore:unresolved-reference
+	policy.violation[{"id": "excess_actions"}] with input as base_secret with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]} # regal ignore:unresolved-reference
 }
 
 test_outside_integration_role_in_aws_principal_array if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": {"AWS": ["arn:aws:iam::123456789012:role/admin", "arn:aws:iam::999999999999:role/other"]}}, {"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": ["secretsmanager:GetSecretValue"]}])
-	policy.violation[{"id": "principal_outside_integration_role_set"}] with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]}
+	policy.violation[{"id": "principal_outside_integration_role_set"}] with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]} # regal ignore:unresolved-reference
 }
 
 test_scalar_excess_action if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": "secretsmanager:DeleteSecret"}])
-	policy.violation[{"id": "excess_actions"}] with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]}
+	policy.violation[{"id": "excess_actions"}] with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]} # regal ignore:unresolved-reference
 }
 
 test_deny_principals_do_not_emit_scope_violations if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "*"}, {"op": "replace", "path": "/config/resource_policy/principals/0/effect", "value": "Deny"}])
-	count(policy.violation) == 0 with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]}
+	count(policy.violation) == 0 with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]} # regal ignore:unresolved-reference
 }
 
 test_no_policy_passes_policy_checks if {

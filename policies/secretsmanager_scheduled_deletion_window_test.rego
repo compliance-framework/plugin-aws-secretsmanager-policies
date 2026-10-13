@@ -59,7 +59,7 @@ test_minimum_fails if {
 test_force_delete_fails_and_allow_list_passes if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}, {"op": "replace", "path": "/config/recovery_window_days", "value": 0}, {"op": "add", "path": "/config/force_delete_without_recovery", "value": true}])
 	policy.violation[{"id": "force_delete_used"}] with input as inp
-	not policy.violation[{"id": "force_delete_used"}] with input as inp with data.allowed_force_delete_secret_arns as [base_secret.config.secret_arn]
+	not policy.violation[{"id": "force_delete_used"}] with input as inp with data.allowed_force_delete_secret_arns as [base_secret.config.secret_arn] # regal ignore:unresolved-reference
 }
 
 test_unknown_recovery_window_does_not_force_delete if {

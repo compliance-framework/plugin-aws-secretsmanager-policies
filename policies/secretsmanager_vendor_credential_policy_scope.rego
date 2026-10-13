@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_vendor_credential_policy_scope
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager vendor credential policy is scoped
@@ -56,13 +56,13 @@ is_vendor_secret if {
 	vendor_id != ""
 }
 
-confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]}
+confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]} # regal ignore:unresolved-reference
 
 is_confidential if {
 	confidential_classification_values[data_classification]
 }
 
-privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]}
+privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]} # regal ignore:unresolved-reference
 
 is_pi_secret if {
 	privacy_scope_values[privacy_scope]
@@ -133,8 +133,8 @@ principal_account_id(principal_entry) := principal_account if {
 }
 
 resource_policy_present := object.get(config, "resource_policy_present", false)
-allowed_vendor_actions_normalized := {upper(a) | a := data.allowed_vendor_actions[_]}
-allowed_vendor_partner_accounts := {id | id := data.allowed_vendor_partner_accounts[_]}
+allowed_vendor_actions_normalized := {upper(a) | a := data.allowed_vendor_actions[_]} # regal ignore:unresolved-reference
+allowed_vendor_partner_accounts := {id | id := data.allowed_vendor_partner_accounts[_]} # regal ignore:unresolved-reference
 title := sprintf("Validate vendor credential policy for %s", [secret_arn])
 description := sprintf("Secret %s resource_policy_present=%v.", [secret_arn, resource_policy_present])
 

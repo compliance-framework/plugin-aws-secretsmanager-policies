@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_rotation_timeliness
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager secret rotation is timely
@@ -94,7 +94,7 @@ effective_rotation_days := schedule_rate_days if {
 	schedule_rate_days_positive
 }
 
-rotation_deadline_days := effective_rotation_days * data.rotation_grace_multiplier
+rotation_deadline_days := effective_rotation_days * data.rotation_grace_multiplier # regal ignore:unresolved-reference
 
 skip_reason := sprintf("Secret %s has unsupported rotation schedule_expression=%q; collector must provide a normalized day cadence.", [secret_arn, schedule_expression]) if {
 	resource_type == "secret"

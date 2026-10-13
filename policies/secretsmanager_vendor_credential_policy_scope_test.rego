@@ -69,7 +69,7 @@ test_scalar_excess_action if {
 test_cross_account if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "arn:aws:iam::999999999999:role/vendor"}, {"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": ["secretsmanager:GetSecretValue"]}])
 	policy.violation[{"id": "vendor_principal_cross_account_undocumented"}] with input as inp
-	count(policy.violation) == 0 with input as inp with data.allowed_vendor_partner_accounts as ["999999999999"]
+	count(policy.violation) == 0 with input as inp with data.allowed_vendor_partner_accounts as ["999999999999"] # regal ignore:unresolved-reference
 }
 
 test_cross_account_skipped_when_account_id_missing if {
@@ -82,7 +82,7 @@ test_bare_account_principals if {
 	count(policy.violation) == 0 with input as same
 	cross := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "999999999999"}, {"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": ["secretsmanager:GetSecretValue"]}])
 	policy.violation[{"id": "vendor_principal_cross_account_undocumented"}] with input as cross
-	count(policy.violation) == 0 with input as cross with data.allowed_vendor_partner_accounts as ["999999999999"]
+	count(policy.violation) == 0 with input as cross with data.allowed_vendor_partner_accounts as ["999999999999"] # regal ignore:unresolved-reference
 }
 
 test_deny_principals_do_not_emit_scope_violations if {

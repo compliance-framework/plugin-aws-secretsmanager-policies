@@ -38,7 +38,7 @@ skip_reason := sprintf("Resource type %q is not a secret; this policy only appli
 deleted_date := object.get(config, "deleted_date", "")
 recovery_window_days := object.get(config, "recovery_window_days", null)
 force_delete_without_recovery := object.get(config, "force_delete_without_recovery", false)
-allowed_force_delete_arns := {arn | arn := data.allowed_force_delete_secret_arns[_]}
+allowed_force_delete_arns := {arn | arn := data.allowed_force_delete_secret_arns[_]} # regal ignore:unresolved-reference
 force_delete_allowed if allowed_force_delete_arns[secret_arn]
 title := sprintf("Validate scheduled deletion window for %s", [secret_arn])
 description := sprintf("Secret %s deleted_date=%q and recovery_window_days=%v.", [secret_arn, deleted_date, recovery_window_days])
@@ -48,7 +48,7 @@ violation[{"id": "recovery_window_below_minimum"}] if {
 	deleted_date != ""
 	recovery_window_days != null
 	recovery_window_days > 0
-	recovery_window_days < data.min_recovery_window_days
+	recovery_window_days < data.min_recovery_window_days # regal ignore:unresolved-reference
 }
 
 violation[{"id": "force_delete_used"}] if {

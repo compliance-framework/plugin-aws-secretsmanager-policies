@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_confidential_policy_scope
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager confidential resource policy is same-account and cleared
@@ -56,13 +56,13 @@ is_vendor_secret if {
 	vendor_id != ""
 }
 
-confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]}
+confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]} # regal ignore:unresolved-reference
 
 is_confidential if {
 	confidential_classification_values[data_classification]
 }
 
-privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]}
+privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]} # regal ignore:unresolved-reference
 
 is_pi_secret if {
 	privacy_scope_values[privacy_scope]
@@ -119,7 +119,7 @@ principal_account_id_from_value(arn) := principal_account if {
 }
 
 resource_policy_present := object.get(config, "resource_policy_present", false)
-cleared_principal_arns := {arn | arn := data.cleared_principal_arns[_]}
+cleared_principal_arns := {arn | arn := data.cleared_principal_arns[_]} # regal ignore:unresolved-reference
 title := sprintf("Validate confidential policy scope for %s", [secret_arn])
 description := sprintf("Secret %s resource_policy_present=%v.", [secret_arn, resource_policy_present])
 
@@ -151,7 +151,7 @@ violation[{"id": "principal_outside_cleared_role_set"}] if {
 	not pending_deletion
 	is_confidential
 	resource_policy_present
-	count(data.cleared_principal_arns) > 0
+	count(data.cleared_principal_arns) > 0 # regal ignore:unresolved-reference
 	principal := principals[_]
 	allow_effect(principal)
 	not principal_is_wildcard(principal)

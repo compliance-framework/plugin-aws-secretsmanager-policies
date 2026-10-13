@@ -76,7 +76,7 @@ test_service_linked_stale_rotation_skipped if {
 
 test_allowed_unrotated if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/last_rotated_date", "value": ""}])
-	count(policy.violation) == 0 with input as inp with data.allowed_unrotated_vendor_arns as [base_secret.config.secret_arn]
+	count(policy.violation) == 0 with input as inp with data.allowed_unrotated_vendor_arns as [base_secret.config.secret_arn] # regal ignore:unresolved-reference
 }
 
 test_pending_deletion_skips_vendor_rotation_evidence if {

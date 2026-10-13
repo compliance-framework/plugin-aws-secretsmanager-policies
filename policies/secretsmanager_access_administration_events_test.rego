@@ -57,26 +57,26 @@ test_default_requires_admin_events if {
 
 test_requirement_can_be_disabled if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": []}])
-	count(policy.violation) == 0 with input as inp with data.require_admin_audit_events as false
+	count(policy.violation) == 0 with input as inp with data.require_admin_audit_events as false # regal ignore:unresolved-reference
 }
 
 test_missing_when_required if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": []}])
-	policy.violation[{"id": "admin_events_missing"}] with input as inp with data.require_admin_audit_events as true
+	policy.violation[{"id": "admin_events_missing"}] with input as inp with data.require_admin_audit_events as true # regal ignore:unresolved-reference
 }
 
 test_unattributable_fails if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events/0/user_identity_arn", "value": ""}])
-	policy.violation[{"id": "admin_event_unattributable"}] with input as inp with data.require_admin_audit_events as true
+	policy.violation[{"id": "admin_event_unattributable"}] with input as inp with data.require_admin_audit_events as true # regal ignore:unresolved-reference
 }
 
 test_missing_timestamp_fails if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events/0/event_time", "value": ""}])
-	policy.violation[{"id": "admin_event_missing_timestamp"}] with input as inp with data.require_admin_audit_events as true
-	not policy.violation[{"id": "admin_events_missing"}] with input as inp with data.require_admin_audit_events as true
+	policy.violation[{"id": "admin_event_missing_timestamp"}] with input as inp with data.require_admin_audit_events as true # regal ignore:unresolved-reference
+	not policy.violation[{"id": "admin_events_missing"}] with input as inp with data.require_admin_audit_events as true # regal ignore:unresolved-reference
 }
 
-test_stale_fails if policy.violation[{"id": "admin_event_stale"}] with input as base_secret with data.require_admin_audit_events as true with time.now_ns as 1790812800000000000
+test_stale_fails if policy.violation[{"id": "admin_event_stale"}] with input as base_secret with data.require_admin_audit_events as true with time.now_ns as 1790812800000000000 # regal ignore:unresolved-reference
 
 test_admin_events_scoped_to_secret if {
 	events := [
@@ -84,25 +84,25 @@ test_admin_events_scoped_to_secret if {
 		{"event_name": "RotateSecret", "event_time": "2026-05-02T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin", "requestParameters": {"secretId": base_secret.config.secret_arn}},
 	]
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": events}])
-	not policy.violation[{"id": "admin_events_missing"}] with input as inp with data.require_admin_audit_events as true
-	not policy.violation[{"id": "admin_event_unattributable"}] with input as inp with data.require_admin_audit_events as true
+	not policy.violation[{"id": "admin_events_missing"}] with input as inp with data.require_admin_audit_events as true # regal ignore:unresolved-reference
+	not policy.violation[{"id": "admin_event_unattributable"}] with input as inp with data.require_admin_audit_events as true # regal ignore:unresolved-reference
 }
 
 test_admin_event_with_short_secret_id_and_resource_arn_matches if {
 	event := {"event_name": "RotateSecret", "event_time": "2026-05-02T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin", "requestParameters": {"secretId": "s-1"}, "resources": [{"ARN": base_secret.config.secret_arn}]}
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": [event]}])
-	not policy.violation[{"id": "admin_events_missing"}] with input as inp with data.require_admin_audit_events as true
-	not policy.violation[{"id": "admin_event_unattributable"}] with input as inp with data.require_admin_audit_events as true
+	not policy.violation[{"id": "admin_events_missing"}] with input as inp with data.require_admin_audit_events as true # regal ignore:unresolved-reference
+	not policy.violation[{"id": "admin_event_unattributable"}] with input as inp with data.require_admin_audit_events as true # regal ignore:unresolved-reference
 }
 
 test_delete_and_restore_secret_events_are_admin_evidence if {
 	delete_event := {"event_name": "DeleteSecret", "event_time": "2026-05-02T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin", "requestParameters": {"secretId": base_secret.config.secret_arn}}
 	delete_input := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": [delete_event]}])
-	not policy.violation[{"id": "admin_events_missing"}] with input as delete_input with data.require_admin_audit_events as true
+	not policy.violation[{"id": "admin_events_missing"}] with input as delete_input with data.require_admin_audit_events as true # regal ignore:unresolved-reference
 
 	restore_event := {"event_name": "RestoreSecret", "event_time": "2026-05-03T00:00:00Z", "user_identity_arn": "arn:aws:iam::123456789012:role/admin", "requestParameters": {"secretId": base_secret.config.secret_arn}}
 	restore_input := json.patch(base_secret, [{"op": "replace", "path": "/dynamic/cloudtrail_events", "value": [restore_event]}])
-	not policy.violation[{"id": "admin_events_missing"}] with input as restore_input with data.require_admin_audit_events as true
+	not policy.violation[{"id": "admin_events_missing"}] with input as restore_input with data.require_admin_audit_events as true # regal ignore:unresolved-reference
 }
 
 test_non_secret_record_skipped if {

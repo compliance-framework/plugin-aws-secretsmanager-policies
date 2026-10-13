@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_privacy_subprocessor_posture
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager PI subprocessor posture is controlled
@@ -56,13 +56,13 @@ is_vendor_secret if {
 	vendor_id != ""
 }
 
-confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]}
+confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]} # regal ignore:unresolved-reference
 
 is_confidential if {
 	confidential_classification_values[data_classification]
 }
 
-privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]}
+privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]} # regal ignore:unresolved-reference
 
 is_pi_secret if {
 	privacy_scope_values[privacy_scope]
@@ -136,13 +136,13 @@ kms_key_id := object.get(config, "kms_key_id", "")
 rotation_enabled := object.get(config, "rotation_enabled", false)
 last_rotated_date := object.get(config, "last_rotated_date", "")
 resource_policy_present := object.get(config, "resource_policy_present", false)
-documented_roles_for_vendor := object.get(data.documented_integration_roles, vendor_id, [])
+documented_roles_for_vendor := object.get(data.documented_integration_roles, vendor_id, []) # regal ignore:unresolved-reference
 documented_roles_for_vendor_set := {arn | arn := documented_roles_for_vendor[_]}
-allowed_pi_actions_normalized := {upper(a) | a := data.allowed_pi_actions[_]}
+allowed_pi_actions_normalized := {upper(a) | a := data.allowed_pi_actions[_]} # regal ignore:unresolved-reference
 
 vendor_documented if {
 	vendor_id != ""
-	object.get(data.documented_integration_roles, vendor_id, null) != null
+	object.get(data.documented_integration_roles, vendor_id, null) != null # regal ignore:unresolved-reference
 }
 
 now_ns := time.now_ns()
@@ -177,7 +177,7 @@ violation[{"id": "rotation_overdue"}] if {
 	not is_service_linked
 	rotation_enabled
 	last_rotated_date != ""
-	days_since_rotation > data.pi_rotation_max_days
+	days_since_rotation > data.pi_rotation_max_days # regal ignore:unresolved-reference
 }
 
 violation[{"id": "principal_wildcard"}] if {

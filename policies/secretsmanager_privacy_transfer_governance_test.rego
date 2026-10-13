@@ -57,52 +57,52 @@ test_missing_flow if {
 }
 
 test_register_enforced if {
-	policy.violation[{"id": "data_subject_flow_not_in_register"}] with input as base_secret with data.documented_data_subject_flows as ["other"]
-	count(policy.violation) == 0 with input as base_secret with data.documented_data_subject_flows as ["customer-onboarding"]
+	policy.violation[{"id": "data_subject_flow_not_in_register"}] with input as base_secret with data.documented_data_subject_flows as ["other"] # regal ignore:unresolved-reference
+	count(policy.violation) == 0 with input as base_secret with data.documented_data_subject_flows as ["customer-onboarding"] # regal ignore:unresolved-reference
 }
 
 test_cross_border if {
-	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as base_secret with data.account_id_to_region as {"123456789012": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
-	count(policy.violation) == 0 with input as base_secret with data.account_id_to_region as {"123456789012": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as base_secret with data.account_id_to_region as {"123456789012": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"] # regal ignore:unresolved-reference
+	count(policy.violation) == 0 with input as base_secret with data.account_id_to_region as {"123456789012": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"] # regal ignore:unresolved-reference
 }
 
 test_cross_border_principal_array if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": {"AWS": ["arn:aws:iam::999999999999:role/vendor"]}}])
-	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as inp with data.account_id_to_region as {"999999999999": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as inp with data.account_id_to_region as {"999999999999": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"] # regal ignore:unresolved-reference
 }
 
 test_cross_border_principal_array_with_multiple_regions if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": {"AWS": ["arn:aws:iam::111111111111:role/vendor", "arn:aws:iam::222222222222:role/vendor"]}}])
-	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as inp with data.account_id_to_region as {"111111111111": "us-east-1", "222222222222": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as inp with data.account_id_to_region as {"111111111111": "us-east-1", "222222222222": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"] # regal ignore:unresolved-reference
 }
 
 test_bare_account_principals if {
 	same := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "123456789012"}])
-	count(policy.violation) == 0 with input as same with data.account_id_to_region as {"123456789012": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+	count(policy.violation) == 0 with input as same with data.account_id_to_region as {"123456789012": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"] # regal ignore:unresolved-reference
 	cross := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "999999999999"}])
-	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as cross with data.account_id_to_region as {"999999999999": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as cross with data.account_id_to_region as {"999999999999": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"] # regal ignore:unresolved-reference
 }
 
 test_unmapped_cross_account_principal_fails if {
 	bare_cross := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "999999999999"}])
-	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as bare_cross with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as bare_cross with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"] # regal ignore:unresolved-reference
 	arn_cross := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "arn:aws:iam::999999999999:role/vendor"}])
-	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as arn_cross with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+	policy.violation[{"id": "cross_border_principal_undocumented"}] with input as arn_cross with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"] # regal ignore:unresolved-reference
 }
 
 test_unmapped_cross_account_principal_skipped_when_account_id_missing if {
 	inp := json.patch(base_secret, [{"op": "remove", "path": "/account/account_id"}, {"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "arn:aws:iam::999999999999:role/vendor"}])
-	not policy.violation[{"id": "cross_border_principal_undocumented"}] with input as inp with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+	not policy.violation[{"id": "cross_border_principal_undocumented"}] with input as inp with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"] # regal ignore:unresolved-reference
 }
 
 test_unmapped_same_account_principal_passes if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "123456789012"}])
-	count(policy.violation) == 0 with input as inp with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+	count(policy.violation) == 0 with input as inp with data.account_id_to_region as {"111111111111": "us-east-1"} with data.allowed_pi_transfer_regions as ["us-east-1"] # regal ignore:unresolved-reference
 }
 
 test_deny_principals_do_not_emit_scope_violations if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "999999999999"}, {"op": "replace", "path": "/config/resource_policy/principals/0/effect", "value": "Deny"}])
-	count(policy.violation) == 0 with input as inp with data.account_id_to_region as {"999999999999": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"]
+	count(policy.violation) == 0 with input as inp with data.account_id_to_region as {"999999999999": "eu-west-1"} with data.allowed_pi_transfer_regions as ["us-east-1"] # regal ignore:unresolved-reference
 }
 
 test_non_pi_skipped if {

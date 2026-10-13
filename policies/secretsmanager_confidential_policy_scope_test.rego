@@ -74,7 +74,7 @@ test_cross_account_skipped_when_account_id_missing if {
 test_cross_account_in_aws_principal_array if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": {"AWS": ["arn:aws:iam::999999999999:role/x"]}}])
 	policy.violation[{"id": "cross_account_principal"}] with input as inp
-	policy.violation[{"id": "principal_outside_cleared_role_set"}] with input as inp with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"]
+	policy.violation[{"id": "principal_outside_cleared_role_set"}] with input as inp with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"] # regal ignore:unresolved-reference
 }
 
 test_bare_account_principals if {
@@ -86,7 +86,7 @@ test_bare_account_principals if {
 
 test_allowed_cross_account_principals_ignored_for_confidential_policy if {
 	cross := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "999999999999"}])
-	policy.violation[{"id": "cross_account_principal"}] with input as cross with data.allowed_cross_account_principals as ["999999999999"]
+	policy.violation[{"id": "cross_account_principal"}] with input as cross with data.allowed_cross_account_principals as ["999999999999"] # regal ignore:unresolved-reference
 }
 
 test_deny_principals_do_not_emit_scope_violations if {
@@ -95,14 +95,14 @@ test_deny_principals_do_not_emit_scope_violations if {
 }
 
 test_cleared_list if {
-	policy.violation[{"id": "principal_outside_cleared_role_set"}] with input as base_secret with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/other"]
-	count(policy.violation) == 0 with input as base_secret with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"]
+	policy.violation[{"id": "principal_outside_cleared_role_set"}] with input as base_secret with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/other"] # regal ignore:unresolved-reference
+	count(policy.violation) == 0 with input as base_secret with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"] # regal ignore:unresolved-reference
 }
 
 test_wildcard_not_reported_outside_cleared_role_set if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "*"}])
-	policy.violation[{"id": "wildcard_principal"}] with input as inp with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"]
-	not policy.violation[{"id": "principal_outside_cleared_role_set"}] with input as inp with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"]
+	policy.violation[{"id": "wildcard_principal"}] with input as inp with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"] # regal ignore:unresolved-reference
+	not policy.violation[{"id": "principal_outside_cleared_role_set"}] with input as inp with data.cleared_principal_arns as ["arn:aws:iam::123456789012:role/admin"] # regal ignore:unresolved-reference
 }
 
 test_pending_deletion_skips_confidential_policy_scope if {
