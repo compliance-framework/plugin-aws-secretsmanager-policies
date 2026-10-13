@@ -1,0 +1,5 @@
+lisa-design:
+- Regal unresolved-reference errors on data.json keys are silenced with trailing line-scoped `# regal ignore:unresolved-reference` comments (103 lines), not a repo .regal/config.yaml, so CI keeps using the shared config (spec W2-S4-T02, model plugin-apt-versions-policies#6).
+- redundant-alias fixed by dropping `as secretsmanager_common` from 14 imports; references unchanged.
+- Regal warnings (332) left untouched by decision of the user (fix errors only).
+- ci.yml copied verbatim from mock-plugin-policies-1 at workflows v1.5.1; push.yml/test.yml removed; release.yml and build-and-upload.yml untouched.
