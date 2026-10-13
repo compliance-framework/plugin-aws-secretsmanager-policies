@@ -1,0 +1,5 @@
+lisa-design:
+- Callers and release-please-config.json are byte-identical to the reviewed, merged reference (plugin-file-attestation-policies#4), which copies mock-plugin-policies-1 with pins at workflows v1.5.2 (6e7fc9c). Default branch is main, so push triggers stay [main].
+- Manifest seeded at 0.1.1 = releases/latest (v0.1.1, final); its commit 7ad423f is an ancestor of main, so no bootstrap-sha. No version.txt added by hand; release-please adds it in the first release PR.
+- The bundle stays built from policies/ only: the v0.1.1 release asset rebuilds byte-identically with the old command (OPA 1.6.0, opa build -b policies) and the shared command (OPA 1.14.1, opa build --bundle policies).
+- README unchanged: it covers development and make build, not releasing.
