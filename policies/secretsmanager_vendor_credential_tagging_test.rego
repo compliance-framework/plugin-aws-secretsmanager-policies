@@ -59,7 +59,7 @@ test_vendor_id_missing if {
 test_integration_type_missing_if_required if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/tags/IntegrationType", "value": ""}])
 	policy.violation[{"id": "integration_type_tag_missing"}] with input as inp
-	count(policy.violation) == 0 with input as inp with data.require_integration_type_tag as false
+	count(policy.violation) == 0 with input as inp with data.require_integration_type_tag as false # regal ignore:unresolved-reference
 }
 
 test_non_vendor_skipped if {

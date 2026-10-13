@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_admin_principal_present
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager resource policy identifies an administrative principal
@@ -67,7 +67,7 @@ action_list(principal_entry) := [raw] if {
 }
 
 resource_policy_present := object.get(config, "resource_policy_present", false)
-admin_actions_normalized := {upper(a) | a := data.admin_action_set[_]} | {"*"}
+admin_actions_normalized := {upper(a) | a := data.admin_action_set[_]} | {"*"} # regal ignore:unresolved-reference
 
 admin_principal_present if {
 	principal := principals[_]

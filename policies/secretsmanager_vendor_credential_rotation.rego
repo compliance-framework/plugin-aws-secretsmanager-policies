@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_vendor_credential_rotation
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager vendor credential rotation is current
@@ -56,13 +56,13 @@ is_vendor_secret if {
 	vendor_id != ""
 }
 
-confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]}
+confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]} # regal ignore:unresolved-reference
 
 is_confidential if {
 	confidential_classification_values[data_classification]
 }
 
-privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]}
+privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]} # regal ignore:unresolved-reference
 
 is_pi_secret if {
 	privacy_scope_values[privacy_scope]
@@ -83,7 +83,7 @@ skip_reason := sprintf("Secret %s is service-linked (owning_service=%q); rotatio
 
 rotation_enabled := object.get(config, "rotation_enabled", false)
 last_rotated_date := object.get(config, "last_rotated_date", "")
-allowed_unrotated_vendor_arns := {arn | arn := data.allowed_unrotated_vendor_arns[_]}
+allowed_unrotated_vendor_arns := {arn | arn := data.allowed_unrotated_vendor_arns[_]} # regal ignore:unresolved-reference
 allowed_unrotated_vendor if allowed_unrotated_vendor_arns[secret_arn]
 
 now_ns := time.now_ns()
@@ -115,5 +115,5 @@ violation[{"id": "vendor_rotation_stale"}] if {
 	not allowed_unrotated_vendor
 	rotation_enabled
 	last_rotated_date != ""
-	days_since_rotation > data.vendor_rotation_max_days
+	days_since_rotation > data.vendor_rotation_max_days # regal ignore:unresolved-reference
 }

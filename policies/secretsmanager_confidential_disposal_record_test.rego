@@ -85,5 +85,5 @@ test_delete_secret_event_with_short_secret_id_and_resource_arn_matches if {
 
 test_disabled_requirement if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/deleted_date", "value": "2026-05-20T00:00:00Z"}])
-	count(policy.violation) == 0 with input as inp with data.require_disposal_record as false
+	count(policy.violation) == 0 with input as inp with data.require_disposal_record as false # regal ignore:unresolved-reference
 }

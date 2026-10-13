@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_vendor_credential_tagging
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager vendor credential tags are complete
@@ -55,13 +55,13 @@ is_vendor_secret if {
 	vendor_id != ""
 }
 
-confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]}
+confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]} # regal ignore:unresolved-reference
 
 is_confidential if {
 	confidential_classification_values[data_classification]
 }
 
-privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]}
+privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]} # regal ignore:unresolved-reference
 
 is_pi_secret if {
 	privacy_scope_values[privacy_scope]
@@ -79,7 +79,7 @@ description := sprintf("Secret %s VendorId=%q IntegrationType=%q.", [secret_arn,
 default require_integration_type_tag := true
 
 require_integration_type_tag := false if {
-	data.require_integration_type_tag == false
+	data.require_integration_type_tag == false # regal ignore:unresolved-reference
 }
 
 violation[{"id": "vendor_id_tag_missing"}] if {

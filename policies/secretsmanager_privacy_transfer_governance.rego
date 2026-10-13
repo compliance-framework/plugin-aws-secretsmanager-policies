@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_privacy_transfer_governance
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager PI transfer governance is documented
@@ -56,13 +56,13 @@ is_vendor_secret if {
 	vendor_id != ""
 }
 
-confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]}
+confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]} # regal ignore:unresolved-reference
 
 is_confidential if {
 	confidential_classification_values[data_classification]
 }
 
-privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]}
+privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]} # regal ignore:unresolved-reference
 
 is_pi_secret if {
 	privacy_scope_values[privacy_scope]
@@ -120,15 +120,15 @@ principal_account_id_from_value(arn) := principal_account if {
 
 resource_policy_present := object.get(config, "resource_policy_present", false)
 data_subject_flow := object.get(tags, "DataSubjectFlow", "")
-documented_data_subject_flows := {flow | flow := data.documented_data_subject_flows[_]}
-allowed_pi_transfer_regions := {region | region := data.allowed_pi_transfer_regions[_]}
+documented_data_subject_flows := {flow | flow := data.documented_data_subject_flows[_]} # regal ignore:unresolved-reference
+allowed_pi_transfer_regions := {region | region := data.allowed_pi_transfer_regions[_]} # regal ignore:unresolved-reference
 
 principal_regions(principal_entry) := regions if {
 	allow_effect(principal_entry)
 	regions := {region |
 		arn := principal_values(principal_entry)[_]
 		principal_account := principal_account_id_from_value(arn)
-		region := object.get(data.account_id_to_region, principal_account, "")
+		region := object.get(data.account_id_to_region, principal_account, "") # regal ignore:unresolved-reference
 		region != ""
 	}
 }
@@ -148,7 +148,7 @@ violation[{"id": "data_subject_flow_not_in_register"}] if {
 	not pending_deletion
 	is_pi_secret
 	data_subject_flow != ""
-	count(data.documented_data_subject_flows) > 0
+	count(data.documented_data_subject_flows) > 0 # regal ignore:unresolved-reference
 	not documented_data_subject_flows[data_subject_flow]
 }
 
@@ -157,7 +157,7 @@ violation[{"id": "cross_border_principal_undocumented"}] if {
 	not pending_deletion
 	is_pi_secret
 	resource_policy_present
-	count(data.account_id_to_region) > 0
+	count(data.account_id_to_region) > 0 # regal ignore:unresolved-reference
 	principal := principals[_]
 	region := principal_regions(principal)[_]
 	not allowed_pi_transfer_regions[region]
@@ -168,12 +168,12 @@ violation[{"id": "cross_border_principal_undocumented"}] if {
 	not pending_deletion
 	is_pi_secret
 	resource_policy_present
-	count(data.account_id_to_region) > 0
+	count(data.account_id_to_region) > 0 # regal ignore:unresolved-reference
 	principal := principals[_]
 	allow_effect(principal)
 	account_id != ""
 	arn := principal_values(principal)[_]
 	principal_account := principal_account_id_from_value(arn)
 	principal_account != account_id
-	object.get(data.account_id_to_region, principal_account, "") == ""
+	object.get(data.account_id_to_region, principal_account, "") == "" # regal ignore:unresolved-reference
 }

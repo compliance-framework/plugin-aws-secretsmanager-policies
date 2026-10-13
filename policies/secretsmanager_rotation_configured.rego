@@ -1,6 +1,6 @@
 package compliance_framework.secretsmanager_rotation_configured
 
-import data.ccf_libs.secretsmanager_common as secretsmanager_common
+import data.ccf_libs.secretsmanager_common
 
 # METADATA
 # title: Secrets Manager secret has rotation enabled

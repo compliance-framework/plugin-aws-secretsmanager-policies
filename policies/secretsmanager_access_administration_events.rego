@@ -38,7 +38,7 @@ skip_reason := sprintf("Resource type %q is not a secret; this policy only appli
 
 dynamic := object.get(input, "dynamic", {})
 cloudtrail_events := object.get(dynamic, "cloudtrail_events", [])
-admin_event_names := {name | name := data.admin_event_names[_]}
+admin_event_names := {name | name := data.admin_event_names[_]} # regal ignore:unresolved-reference
 
 event_secret_ids(event) := ids if {
 	ids := (({id |
@@ -82,27 +82,27 @@ description := sprintf("Secret %s has %v matching admin events.", [secret_arn, c
 
 violation[{"id": "admin_events_missing"}] if {
 	resource_type == "secret"
-	data.require_admin_audit_events
+	data.require_admin_audit_events # regal ignore:unresolved-reference
 	count(matching_admin_events) == 0
 }
 
 violation[{"id": "admin_event_unattributable"}] if {
 	resource_type == "secret"
-	data.require_admin_audit_events
+	data.require_admin_audit_events # regal ignore:unresolved-reference
 	event := matching_admin_events[_]
 	object.get(event, "user_identity_arn", "") == ""
 }
 
 violation[{"id": "admin_event_missing_timestamp"}] if {
 	resource_type == "secret"
-	data.require_admin_audit_events
+	data.require_admin_audit_events # regal ignore:unresolved-reference
 	count(matching_admin_events) > 0
 	count(matching_admin_event_times) == 0
 }
 
 violation[{"id": "admin_event_stale"}] if {
 	resource_type == "secret"
-	data.require_admin_audit_events
+	data.require_admin_audit_events # regal ignore:unresolved-reference
 	count(matching_admin_events) > 0
-	days_since_newest_admin_event > data.change_review_window_days
+	days_since_newest_admin_event > data.change_review_window_days # regal ignore:unresolved-reference
 }

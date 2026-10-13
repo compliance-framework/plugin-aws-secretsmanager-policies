@@ -49,13 +49,13 @@ is_vendor_secret if {
 	vendor_id != ""
 }
 
-confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]}
+confidential_classification_values := {lower(v) | v := data.confidential_classification_values[_]} # regal ignore:unresolved-reference
 
 is_confidential if {
 	confidential_classification_values[data_classification]
 }
 
-privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]}
+privacy_scope_values := {lower(v) | v := data.privacy_scope_values[_]} # regal ignore:unresolved-reference
 
 is_pi_secret if {
 	privacy_scope_values[privacy_scope]
@@ -77,7 +77,7 @@ violation[{"id": "recovery_window_below_confidential_minimum"}] if {
 	is_confidential
 	deleted_date != ""
 	recovery_window_days != null
-	recovery_window_days < data.min_confidential_recovery_window_days
+	recovery_window_days < data.min_confidential_recovery_window_days # regal ignore:unresolved-reference
 }
 
 violation[{"id": "force_delete_used"}] if {
