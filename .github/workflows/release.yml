@@ -1,11 +1,19 @@
+name: release
+
 on:
-  push:
-    tags:
-      - '*'
+  release:
+    types: [published]
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-upload:
+  release:
+    uses: compliance-framework/workflows/.github/workflows/release-policies.yml@6e7fc9c04b59c7d1117938da397f8a6f8df036ab # v1.5.2
+    with:
+      opa-version: "1.14.1"
+      directory: policies
     permissions:
-      contents: write
+      contents: read
       packages: write
-    uses: ./.github/workflows/build-and-upload.yml
+    secrets: inherit
