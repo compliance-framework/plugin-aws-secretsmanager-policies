@@ -3,3 +3,6 @@ lisa-design:
 - Manifest seeded at 0.1.1 = releases/latest (v0.1.1, final); its commit 7ad423f is an ancestor of main, so no bootstrap-sha. No version.txt added by hand; release-please adds it in the first release PR.
 - The bundle stays built from policies/ only: the v0.1.1 release asset rebuilds byte-identically with the old command (OPA 1.6.0, opa build -b policies) and the shared command (OPA 1.14.1, opa build --bundle policies).
 - README unchanged: it covers development and make build, not releasing.
+
+lisa-selfreview:
+- Pass 1 (packs core, rego-policy): no findings. Every file matches the merged reference; actionlint v1.7.12 clean; OPA 1.14.1 check --strict, fmt and test (153/153) pass; config has no drift from release-please/defaults.json at v1.5.2.
