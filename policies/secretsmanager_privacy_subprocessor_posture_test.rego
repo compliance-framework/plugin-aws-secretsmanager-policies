@@ -51,7 +51,7 @@ base_secret := {
 
 test_pass if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/action", "value": ["secretsmanager:GetSecretValue"]}])
-	count(policy.violation) == 0 with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]} # regal ignore:unresolved-reference
+	count(policy.violation) == 0 with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]} with time.now_ns as 1780272000000000000 # regal ignore:unresolved-reference
 }
 
 test_vendor_id_missing if {
@@ -110,12 +110,12 @@ test_scalar_excess_action if {
 
 test_deny_principals_do_not_emit_scope_violations if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy/principals/0/principal", "value": "*"}, {"op": "replace", "path": "/config/resource_policy/principals/0/effect", "value": "Deny"}])
-	count(policy.violation) == 0 with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]} # regal ignore:unresolved-reference
+	count(policy.violation) == 0 with input as inp with data.documented_integration_roles as {"acme": ["arn:aws:iam::123456789012:role/admin"]} with time.now_ns as 1780272000000000000 # regal ignore:unresolved-reference
 }
 
 test_no_policy_passes_policy_checks if {
 	inp := json.patch(base_secret, [{"op": "replace", "path": "/config/resource_policy_present", "value": false}])
-	count(policy.violation) == 0 with input as inp
+	count(policy.violation) == 0 with input as inp with time.now_ns as 1780272000000000000
 }
 
 test_pending_deletion_skips_pi_subprocessor_posture if {
